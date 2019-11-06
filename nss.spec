@@ -10,7 +10,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          4
+Release:          5
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -78,6 +78,7 @@ v3 certificates, and other security standards.
 Summary:          Network Security Services development files
 Provides:         nss-static = %{version}-%{release}
 Provides:         nss-pkcs11-devel-static = %{version}-%{release}
+Provides:         nss-pkcs11-devel
 Requires:         nss%{?_isa} = %{version}-%{release}
 Requires:         nss-util-devel nss-softokn-devel nspr-devel >= %{nspr_version} pkgconf
 Requires:         nss-softokn-devel = %{version}-%{release}
@@ -634,6 +635,9 @@ update-crypto-policies
 
 
 %changelog
+* Mon Oct 14 2019 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-5
+- add provide nss-pkcs11-devel
+
 * Tue Sep 24 2019 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-4
 - update requires for help
 
