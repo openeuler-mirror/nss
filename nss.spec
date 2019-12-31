@@ -107,7 +107,7 @@ Requires:         nss-util >= %{version}-%{release}
 Provides:         nss-softokn-freebl
 Conflicts:        prelink < 0.4.3
 Conflicts:        filesystem < 3
-obsoletes:		  nss-softokn-freebl
+#obsoletes:		  nss-softokn-freebl
 
 %description softokn
 Network Security Services Softoken and Freebl Cryptographic Module
