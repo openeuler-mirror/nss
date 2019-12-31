@@ -401,15 +401,6 @@ for f in "%{allTools}"; do
 done
 install -c -m 644 ./dist/docs/nroff/pp.1 $RPM_BUILD_ROOT%{_mandir}/man1/pp.1
 
-# Copy the man pages for the configuration files
-for f in pkcs11.txt; do
-   install -c -m 644 ${f}.5 $RPM_BUILD_ROOT%{_mandir}/man5/${f}.5
-done
-# Copy the man pages for the nss databases
-for f in cert8.db cert9.db key3.db key4.db secmod.db; do
-   install -c -m 644 ${f}.5 $RPM_BUILD_ROOT%{_mandir}/man5/${f}.5
-done
-
 # Copy the crypto-policies configuration file
 install -p -m 644 %{SOURCE28} $RPM_BUILD_ROOT/%{_sysconfdir}/crypto-policies/local.d
 
