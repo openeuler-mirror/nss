@@ -75,7 +75,7 @@ Requires:         nss%{?_isa} = %{version}-%{release}
 Requires:         nss-util-devel nss-softokn-devel nspr-devel >= %{nspr_version} pkgconf
 Requires:         nss-softokn-devel = %{version}-%{release}
 BuildRequires:    xmlto
-obsoletes:		  nss-pkcs11-devel
+Obsoletes:		  nss-pkcs11-devel
 
 %description devel
 Header and Library files for doing development with Network Security Services.
@@ -85,7 +85,7 @@ Summary:          Network Security Services Utilities Library
 Requires:         nspr >= %{nspr_version} nss-help
 Requires:         %{name}%{?_isa} = %{version}-%{release}
 Provides:         nss-tools = %{version}-%{release}
-obsoletes:		  nss-tools
+Obsoletes:		  nss-tools
 
 %description util
 Utilities for Network Security Services and the Softoken module
@@ -107,7 +107,7 @@ Requires:         nss-util >= %{version}-%{release}
 Provides:         nss-softokn-freebl
 Conflicts:        prelink < 0.4.3
 Conflicts:        filesystem < 3
-#obsoletes:		  nss-softokn-freebl
+Obsoletes:		  nss-softokn-freebl
 
 %description softokn
 Network Security Services Softoken and Freebl Cryptographic Module
@@ -121,7 +121,7 @@ Requires:         nspr-devel >= %{nspr_version}
 Requires:         nss-util-devel >= %{version}-%{release}
 Requires:         pkgconf
 BuildRequires:    nspr-devel >= %{nspr_version}
-obsoletes:		  nss-softokn-freebl-devel
+Obsoletes:		  nss-softokn-freebl-devel
 
 %description softokn-devel
 NSS Softoken Cryptographic Module and Freebl Library Development Tools
