@@ -10,7 +10,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          5
+Release:          6
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -38,14 +38,6 @@ Source13:         blank-cert9.db
 Source14:         blank-key4.db
 Source15:         system-pkcs11.txt
 Source16:         setup-nsssysinit.sh
-Source20:         nss-config.xml
-Source21:         setup-nsssysinit.xml
-Source22:         pkcs11.txt.xml
-Source23:         cert8.db.xml
-Source24:         cert9.db.xml
-Source25:         key3.db.xml
-Source26:         key4.db.xml
-Source27:         secmod.db.xml
 Source28:         nss-p11-kit.config
 Source29:         PayPalICA.cert
 Source30:         PayPalEE.cert
@@ -245,25 +237,7 @@ cp ./nss/lib/ckfw/nssck.api ./dist/private/nss/
 date +"%e %B %Y" | tr -d '\n' > date.xml
 echo -n %{version} > version.xml
 
-# configuration files and setup script
-for m in %{SOURCE20} %{SOURCE21} %{SOURCE22}; do
-  cp ${m} .
-done
-for m in nss-config.xml setup-nsssysinit.xml pkcs11.txt.xml; do
-  xmlto man ${m}
-done
-
-# nss databases considered to be configuration files
-for m in %{SOURCE23} %{SOURCE24} %{SOURCE25} %{SOURCE26} %{SOURCE27}; do
-  cp ${m} .
-done
-for m in cert8.db.xml cert9.db.xml key3.db.xml key4.db.xml secmod.db.xml; do
-  xmlto man ${m}
-done
-
-
 %check
-
 export FREEBL_NO_DEPEND=1
 
 export BUILD_OPT=1
@@ -612,29 +586,12 @@ update-crypto-policies
 %{_includedir}/nss3/shsign.h
 
 %files help
-%doc %{_mandir}/man5/cert8.db.5*
-%doc %{_mandir}/man5/key3.db.5*
-%doc %{_mandir}/man5/secmod.db.5*
-%doc %{_mandir}/man5/cert9.db.5*
-%doc %{_mandir}/man5/key4.db.5*
-%doc %{_mandir}/man5/pkcs11.txt.5*
-%doc %{_mandir}/man1/setup-nsssysinit.1*
-%doc %{_mandir}/man1/certutil.1*
-%doc %{_mandir}/man1/cmsutil.1*
-%doc %{_mandir}/man1/crlutil.1*
-%doc %{_mandir}/man1/modutil.1*
-%doc %{_mandir}/man1/pk12util.1*
-%doc %{_mandir}/man1/signver.1*
-%doc %{_mandir}/man1/derdump.1*
-%doc %{_mandir}/man1/signtool.1*
-%doc %{_mandir}/man1/pp.1*
-%doc %{_mandir}/man1/ssltap.1*
-%doc %{_mandir}/man1/vfychain.1*
-%doc %{_mandir}/man1/vfyserv.1*
-%doc %{_mandir}/man1/nss-config.1*
-
+%doc %{_mandir}/man*
 
 %changelog
+* Tue Dec 31 2019 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-6
+- delete unused man
+
 * Mon Oct 14 2019 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-5
 - add provide nss-pkcs11-devel
 
