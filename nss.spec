@@ -395,10 +395,6 @@ install -p -m 755 ./dist/pkgconfig/setup-nsssysinit.sh $RPM_BUILD_ROOT/%{_bindir
 # install a symbolic link to it, without the ".sh" suffix,
 ln -r -s -f $RPM_BUILD_ROOT/%{_bindir}/setup-nsssysinit.sh $RPM_BUILD_ROOT/%{_bindir}/setup-nsssysinit
 
-# Copy the man pages for scripts
-for f in nss-config setup-nsssysinit; do
-   install -c -m 644 ${f}.1 $RPM_BUILD_ROOT%{_mandir}/man1/${f}.1
-done
 # Copy the man pages for the nss tools
 for f in "%{allTools}"; do
   install -c -m 644 ./dist/docs/nroff/${f}.1 $RPM_BUILD_ROOT%{_mandir}/man1/${f}.1
