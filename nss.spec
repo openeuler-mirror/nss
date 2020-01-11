@@ -10,7 +10,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          6
+Release:          7
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -26,9 +26,6 @@ Source1:          nss-util.pc
 Source2:          nss-util-config
 Source3:          nss-softokn.pc
 Source4:          nss-softokn-config
-Source5:          nss-softokn-prelink.conf
-Source6:          nss-softokn-dracut-module-setup.sh
-Source7:          nss-softokn-dracut.conf
 Source8:          nss.pc
 Source9:          nss-config
 Source10:         blank-cert8.db
@@ -36,24 +33,6 @@ Source11:         blank-key3.db
 Source12:         blank-secmod.db
 Source13:         blank-cert9.db
 Source14:         blank-key4.db
-Source15:         system-pkcs11.txt
-Source16:         setup-nsssysinit.sh
-Source28:         nss-p11-kit.config
-Source29:         PayPalICA.cert
-Source30:         PayPalEE.cert
-
-Patch1:           renegotiate-transitional.patch
-# Upstream: https://bugzilla.mozilla.org/show_bug.cgi?id=617723
-Patch2:           nss-539183.patch
-# This patch uses the GCC -iquote option documented at
-# http://gcc.gnu.org/onlinedocs/gcc/Directory-Options.html#Directory-Options
-# to give the in-tree headers a higher priority over the system headers,
-# when they are included through the quote form (#include "file.h").
-Patch3:           iquote.patch
-# rhbz: https://bugzilla.redhat.com/show_bug.cgi?id=1185708
-Patch4:           rhbz1185708-enable-ecc-3des-ciphers-by-default.patch
-# Upstream: https://bugzilla.mozilla.org/show_bug.cgi?id=1505317
-Patch5:           nss-tests-paypal-certs-v2.patch
 
 Patch9000: Bug-1412829-reject-empty-supported_signature_algorit.patch
 Patch9001: Bug-1507135-Add-additional-null-checks-to-CMS-messag.patch
@@ -140,16 +119,10 @@ Help document for NSS
 %prep
 %setup -q -n %{name}-%{nss_version}
 
-%patch1 -p0 -b .transitional
-%patch2 -p0 -b .539183
-%patch3 -p0 -b .iquote
-%patch4 -p0 -b .1185708_3des
 pushd nss
-%patch5 -p1 -b .paypal-certs
 %patch9000 -p1
 %patch9001 -p1
 %patch9002 -p1
-cp %{SOURCE29} %{SOURCE30} tests/libpkix/certs
 popd
 
 %build
@@ -215,7 +188,7 @@ cp ./nss/doc/nroff/* ./dist/docs/nroff
 
 # Set up our package files
 mkdir -p ./dist/pkgconfig
-for m in %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE8} %{SOURCE9} %{SOURCE16}; do
+for m in %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE8} %{SOURCE9}; do
   cp ${m} ./dist/pkgconfig
   chmod 755 ./dist/pkgconfig/*
 done
@@ -328,9 +301,6 @@ mkdir -p $RPM_BUILD_ROOT%{_mandir}/man1
 mkdir -p $RPM_BUILD_ROOT%{_mandir}/man5
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb
 
-install -m 644 %{SOURCE5} $RPM_BUILD_ROOT/%{_sysconfdir}/prelink.conf.d/
-install -m 755 %{SOURCE6} $RPM_BUILD_ROOT/%{dracut_modules_dir}/module-setup.sh
-install -m 644 %{SOURCE7} $RPM_BUILD_ROOT/%{dracut_conf_dir}/50-nss-softokn.conf
 # Install the empty NSS db files
 # Legacy db
 install -p -m 644 %{SOURCE10} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/cert8.db
@@ -339,7 +309,6 @@ install -p -m 644 %{SOURCE12} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/secmod.db
 # Shared db
 install -p -m 644 %{SOURCE13} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/cert9.db
 install -p -m 644 %{SOURCE14} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/key4.db
-install -p -m 644 %{SOURCE15} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/pkcs11.txt
 
 # Copy the binary libraries we want
 for file in libnssutil3.so libsoftokn3.so libnssdbm3.so libfreebl3.so libfreeblpriv3.so libnss3.so libnsssysinit.so libsmime3.so libssl3.so
@@ -390,10 +359,6 @@ install -p -m 644 ./dist/pkgconfig/nss-softokn.pc $RPM_BUILD_ROOT/%{_libdir}/pkg
 install -p -m 755 ./dist/pkgconfig/nss-softokn-config $RPM_BUILD_ROOT/%{_bindir}/nss-softokn-config
 install -p -m 644 ./dist/pkgconfig/nss.pc $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/nss.pc
 install -p -m 755 ./dist/pkgconfig/nss-config $RPM_BUILD_ROOT/%{_bindir}/nss-config
-# Copy the pkcs #11 configuration script
-install -p -m 755 ./dist/pkgconfig/setup-nsssysinit.sh $RPM_BUILD_ROOT/%{_bindir}/setup-nsssysinit.sh
-# install a symbolic link to it, without the ".sh" suffix,
-ln -r -s -f $RPM_BUILD_ROOT/%{_bindir}/setup-nsssysinit.sh $RPM_BUILD_ROOT/%{_bindir}/setup-nsssysinit
 
 # Copy the man pages for the nss tools
 for f in "%{allTools}"; do
@@ -402,7 +367,6 @@ done
 install -c -m 644 ./dist/docs/nroff/pp.1 $RPM_BUILD_ROOT%{_mandir}/man1/pp.1
 
 # Copy the crypto-policies configuration file
-install -p -m 644 %{SOURCE28} $RPM_BUILD_ROOT/%{_sysconfdir}/crypto-policies/local.d
 
 /usr/bin/setup-nsssysinit.sh on
 $RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libsoftokn3.so
@@ -424,11 +388,7 @@ update-crypto-policies
 %{_libdir}/libsmime3.so
 %dir %{_sysconfdir}/pki/nssdb
 %config(noreplace) %verify(not md5 size mtime) %{_sysconfdir}/pki/nssdb/*
-%config(noreplace) %verify(not md5 size mtime) %{_sysconfdir}/crypto-policies/local.d/nss-p11-kit.config
 %{_libdir}/libnsssysinit.so
-%{_bindir}/setup-nsssysinit.sh
-# symbolic link to setup-nsssysinit.sh
-%{_bindir}/setup-nsssysinit
 
 %files devel
 %{_libdir}/libcrmf.a
@@ -539,11 +499,6 @@ update-crypto-policies
 %{_libdir}/libfreebl3.chk
 %{_libdir}/libfreeblpriv3.so
 %{_libdir}/libfreeblpriv3.chk
-%dir %{_sysconfdir}/prelink.conf.d/
-%{_sysconfdir}/prelink.conf.d/nss-softokn-prelink.conf
-%dir %{dracut_modules_dir}
-%{dracut_modules_dir}/module-setup.sh
-%{dracut_conf_dir}/50-nss-softokn.conf
 %{_libdir}/libnssdbm3.so
 %{_libdir}/libnssdbm3.chk
 %{_libdir}/libsoftokn3.so
@@ -576,6 +531,9 @@ update-crypto-policies
 %doc %{_mandir}/man*
 
 %changelog
+* Sat Jan 11 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-7
+- simplify functions
+
 * Tue Dec 31 2019 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-6
 - delete unused man
 
