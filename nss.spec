@@ -19,7 +19,7 @@ Requires:         p11-kit-trust crypto-policies nss-help
 Requires(post):   coreutils, sed
 BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-devel
 BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++
-obsoletes:		  nss-sysinit
+obsoletes:	  nss-sysinit < %{version}-%{release}
 
 Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_40_1_RTM/src/%{name}-%{nss_version}.tar.gz
 Source1:          nss-util.pc
@@ -33,6 +33,7 @@ Source11:         blank-key3.db
 Source12:         blank-secmod.db
 Source13:         blank-cert9.db
 Source14:         blank-key4.db
+Source16:         setup-nsssysinit.sh
 
 Patch9000: Bug-1412829-reject-empty-supported_signature_algorit.patch
 Patch9001: Bug-1507135-Add-additional-null-checks-to-CMS-messag.patch
@@ -54,7 +55,7 @@ Requires:         nss%{?_isa} = %{version}-%{release}
 Requires:         nss-util-devel nss-softokn-devel nspr-devel >= %{nspr_version} pkgconf
 Requires:         nss-softokn-devel = %{version}-%{release}
 BuildRequires:    xmlto
-Obsoletes:		  nss-pkcs11-devel
+Obsoletes:        nss-pkcs11-devel < %{version}-%{release}
 
 %description devel
 Header and Library files for doing development with Network Security Services.
@@ -64,7 +65,7 @@ Summary:          Network Security Services Utilities Library
 Requires:         nspr >= %{nspr_version} nss-help
 Requires:         %{name}%{?_isa} = %{version}-%{release}
 Provides:         nss-tools = %{version}-%{release}
-Obsoletes:		  nss-tools
+Obsoletes:        nss-tools < %{version}-%{release}
 
 %description util
 Utilities for Network Security Services and the Softoken module
@@ -86,7 +87,7 @@ Requires:         nss-util >= %{version}-%{release}
 Provides:         nss-softokn-freebl
 Conflicts:        prelink < 0.4.3
 Conflicts:        filesystem < 3
-Obsoletes:		  nss-softokn-freebl
+Obsoletes:	  nss-softokn-freebl < %{version}-%{release}
 
 %description softokn
 Network Security Services Softoken and Freebl Cryptographic Module
@@ -100,7 +101,7 @@ Requires:         nspr-devel >= %{nspr_version}
 Requires:         nss-util-devel >= %{version}-%{release}
 Requires:         pkgconf
 BuildRequires:    nspr-devel >= %{nspr_version}
-Obsoletes:		  nss-softokn-freebl-devel
+Obsoletes:	  nss-softokn-freebl-devel < %{version}-%{release}
 
 %description softokn-devel
 NSS Softoken Cryptographic Module and Freebl Library Development Tools
@@ -188,7 +189,7 @@ cp ./nss/doc/nroff/* ./dist/docs/nroff
 
 # Set up our package files
 mkdir -p ./dist/pkgconfig
-for m in %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE8} %{SOURCE9}; do
+for m in %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE8} %{SOURCE9} %{SOURCE16}; do
   cp ${m} ./dist/pkgconfig
   chmod 755 ./dist/pkgconfig/*
 done
@@ -359,6 +360,8 @@ install -p -m 644 ./dist/pkgconfig/nss-softokn.pc $RPM_BUILD_ROOT/%{_libdir}/pkg
 install -p -m 755 ./dist/pkgconfig/nss-softokn-config $RPM_BUILD_ROOT/%{_bindir}/nss-softokn-config
 install -p -m 644 ./dist/pkgconfig/nss.pc $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/nss.pc
 install -p -m 755 ./dist/pkgconfig/nss-config $RPM_BUILD_ROOT/%{_bindir}/nss-config
+install -p -m 755 ./dist/pkgconfig/setup-nsssysinit.sh $RPM_BUILD_ROOT/%{_bindir}/setup-nsssysinit.sh
+ln -r -s -f $RPM_BUILD_ROOT/%{_bindir}/setup-nsssysinit.sh $RPM_BUILD_ROOT/%{_bindir}/setup-nsssysinit
 
 # Copy the man pages for the nss tools
 for f in "%{allTools}"; do
@@ -368,11 +371,11 @@ install -c -m 644 ./dist/docs/nroff/pp.1 $RPM_BUILD_ROOT%{_mandir}/man1/pp.1
 
 # Copy the crypto-policies configuration file
 
-/usr/bin/setup-nsssysinit.sh on
-$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libsoftokn3.so
-$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreeblpriv3.so
-$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreebl3.so
-$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libnssdbm3.so
+#/usr/bin/setup-nsssysinit.sh on
+#$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libsoftokn3.so
+#$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreeblpriv3.so
+#$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreebl3.so
+#$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libnssdbm3.so
 
 %post
 update-crypto-policies
@@ -389,6 +392,8 @@ update-crypto-policies
 %dir %{_sysconfdir}/pki/nssdb
 %config(noreplace) %verify(not md5 size mtime) %{_sysconfdir}/pki/nssdb/*
 %{_libdir}/libnsssysinit.so
+%{_bindir}/setup-nsssysinit.sh
+%{_bindir}/setup-nsssysinit
 
 %files devel
 %{_libdir}/libcrmf.a
@@ -496,13 +501,13 @@ update-crypto-policies
 %{!?_licensedir:%global license %%doc}
 %license nss/COPYING
 %{_libdir}/libfreebl3.so
-%{_libdir}/libfreebl3.chk
+#%{_libdir}/libfreebl3.chk
 %{_libdir}/libfreeblpriv3.so
-%{_libdir}/libfreeblpriv3.chk
+#%{_libdir}/libfreeblpriv3.chk
 %{_libdir}/libnssdbm3.so
-%{_libdir}/libnssdbm3.chk
+#%{_libdir}/libnssdbm3.chk
 %{_libdir}/libsoftokn3.so
-%{_libdir}/libsoftokn3.chk
+#%{_libdir}/libsoftokn3.chk
 %dir %{_libdir}/nss
 %dir %{_libdir}/nss/saved
 %dir %{unsupported_tools_directory}
@@ -531,6 +536,9 @@ update-crypto-policies
 %doc %{_mandir}/man*
 
 %changelog
+* Wed Jan 15 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-8
+- add nsssysinit.sh
+
 * Sat Jan 11 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-7
 - simplify functions
 
@@ -546,5 +554,5 @@ update-crypto-policies
 * Mon Sep 23 2019 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-3
 - Rebuild
 
-* Wed Sep 20 2019 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-2
+* Fri Sep 20 2019 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-2
 - Package init
