@@ -10,7 +10,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          7
+Release:          8
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -33,11 +33,12 @@ Source11:         blank-key3.db
 Source12:         blank-secmod.db
 Source13:         blank-cert9.db
 Source14:         blank-key4.db
+Source15:         system-pkcs11.txt
 Source16:         setup-nsssysinit.sh
-
-Patch9000: Bug-1412829-reject-empty-supported_signature_algorit.patch
-Patch9001: Bug-1507135-Add-additional-null-checks-to-CMS-messag.patch
-Patch9002: Bug-1507174-Add-additional-null-checks-to-other-CMS-.patch
+Patch0:           nss-539183.patch
+Patch1:           Bug-1412829-reject-empty-supported_signature_algorit.patch
+Patch2:           Bug-1507135-Add-additional-null-checks-to-CMS-messag.patch
+Patch3:           Bug-1507174-Add-additional-null-checks-to-other-CMS-.patch
 
 %description
 Network Security Services (NSS) is a set of libraries designed to
@@ -120,10 +121,12 @@ Help document for NSS
 %prep
 %setup -q -n %{name}-%{nss_version}
 
+%patch0 -p0 -b .539183
+
 pushd nss
-%patch9000 -p1
-%patch9001 -p1
-%patch9002 -p1
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
 popd
 
 %build
@@ -310,6 +313,7 @@ install -p -m 644 %{SOURCE12} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/secmod.db
 # Shared db
 install -p -m 644 %{SOURCE13} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/cert9.db
 install -p -m 644 %{SOURCE14} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/key4.db
+install -p -m 644 %{SOURCE15} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/pkcs11.txt
 
 # Copy the binary libraries we want
 for file in libnssutil3.so libsoftokn3.so libnssdbm3.so libfreebl3.so libfreeblpriv3.so libnss3.so libnsssysinit.so libsmime3.so libssl3.so
@@ -371,7 +375,7 @@ install -c -m 644 ./dist/docs/nroff/pp.1 $RPM_BUILD_ROOT%{_mandir}/man1/pp.1
 
 # Copy the crypto-policies configuration file
 
-#/usr/bin/setup-nsssysinit.sh on
+/usr/bin/setup-nsssysinit.sh on
 #$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libsoftokn3.so
 #$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreeblpriv3.so
 #$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreebl3.so
@@ -536,6 +540,9 @@ update-crypto-policies
 %doc %{_mandir}/man*
 
 %changelog
+* Fri Feb 14 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-9
+- fix problem that tstclnt fails to connect to fe80::1%lo0
+
 * Wed Jan 15 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-8
 - add nsssysinit.sh
 
