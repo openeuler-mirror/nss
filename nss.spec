@@ -10,7 +10,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          8
+Release:          9
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -375,7 +375,7 @@ install -c -m 644 ./dist/docs/nroff/pp.1 $RPM_BUILD_ROOT%{_mandir}/man1/pp.1
 
 # Copy the crypto-policies configuration file
 
-/usr/bin/setup-nsssysinit.sh on
+#/usr/bin/setup-nsssysinit.sh on
 #$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libsoftokn3.so
 #$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreeblpriv3.so
 #$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreebl3.so
@@ -540,6 +540,9 @@ update-crypto-policies
 %doc %{_mandir}/man*
 
 %changelog
+* Tue Feb 18 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-10
+- fix build error about setup-nsssysinit.sh
+
 * Fri Feb 14 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-9
 - fix problem that tstclnt fails to connect to fe80::1%lo0
 
