@@ -7,10 +7,12 @@
 %global dracut_modules_dir %{dracutlibdir}/modules.d/05nss-softokn/
 %global dracut_conf_dir %{dracutlibdir}/dracut.conf.d
 
+%bcond_with test
+
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          9
+Release:          11
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -18,7 +20,7 @@ Requires:         nspr >= %{nspr_version} nss-util >= %{nss_version} nss-softokn
 Requires:         p11-kit-trust crypto-policies nss-help
 Requires(post):   coreutils, sed
 BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-devel
-BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++
+BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ gdb
 obsoletes:	  nss-sysinit < %{version}-%{release}
 
 Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_40_1_RTM/src/%{name}-%{nss_version}.tar.gz
@@ -214,6 +216,7 @@ cp ./nss/lib/ckfw/nssck.api ./dist/private/nss/
 date +"%e %B %Y" | tr -d '\n' > date.xml
 echo -n %{version} > version.xml
 
+%if %{with test}
 %check
 export FREEBL_NO_DEPEND=1
 
@@ -289,6 +292,8 @@ else
   fi
 fi
 echo "test suite completed"
+
+%endif
 
 %install
 
@@ -540,6 +545,9 @@ update-crypto-policies
 %doc %{_mandir}/man*
 
 %changelog
+* Sat Mar 21 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-11
+- add BuildRequires of gdb; build without test
+
 * Tue Feb 18 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-10
 - fix build error about setup-nsssysinit.sh
 
