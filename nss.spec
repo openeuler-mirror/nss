@@ -12,7 +12,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          11
+Release:          12
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -41,6 +41,7 @@ Patch0:           nss-539183.patch
 Patch1:           Bug-1412829-reject-empty-supported_signature_algorit.patch
 Patch2:           Bug-1507135-Add-additional-null-checks-to-CMS-messag.patch
 Patch3:           Bug-1507174-Add-additional-null-checks-to-other-CMS-.patch
+Patch4:           fix-core-dump-when-sigd-signerInfos-is-NULL.patch
 
 %description
 Network Security Services (NSS) is a set of libraries designed to
@@ -130,6 +131,8 @@ pushd nss
 %patch2 -p1
 %patch3 -p1
 popd
+
+%patch4 -p1
 
 %build
 
@@ -545,6 +548,9 @@ update-crypto-policies
 %doc %{_mandir}/man*
 
 %changelog
+* Thu Apr 30 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-12
+- fix core dump when sigd-signerInfos is NULL
+
 * Sat Mar 21 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-11
 - add BuildRequires of gdb; build without test
 
