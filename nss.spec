@@ -13,7 +13,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          1
+Release:          2
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -24,7 +24,7 @@ BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-de
 BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ gdb
 obsoletes:	  nss-sysinit < %{version}-%{release}
 
-Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_40_1_RTM/src/%{name}-%{nss_version}.tar.gz
+Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_54_RTM/src/%{name}-%{nss_version}.tar.gz
 Source1:          nss-util.pc
 Source2:          nss-util-config
 Source3:          nss-softokn.pc
@@ -346,7 +346,7 @@ do
 done
 
 # Copy some freebl include files we also want
-for file in blapi.h alghmac.h
+for file in blapi.h alghmac.h cmac.h
 do
   install -p -m 644 dist/private/nss/$file $RPM_BUILD_ROOT/%{_includedir}/nss3
 done
@@ -526,6 +526,7 @@ update-crypto-policies &>/dev/null||:
 %files softokn-devel
 %{_libdir}/libfreebl.a
 %{_includedir}/nss3/blapi.h
+%{_includedir}/nss3/cmac.h
 %{_includedir}/nss3/blapit.h
 %{_includedir}/nss3/alghmac.h
 %{_includedir}/nss3/lowkeyi.h
@@ -542,6 +543,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Sat Aug 1 2020 Liquor <lirui130@huawei.com> - 3.54-2
+- add the missing header file and fixed error messages
+
 * Sat Aug 1 2020 Liquor <lirui130@huawei.com> - 3.54-1
 - update to 3.54
 
