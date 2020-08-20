@@ -1,5 +1,6 @@
 %global nspr_version 4.20.0
-%global nss_version 3.54
+%global nss_version 3.54.0
+%global nss_archive_version 3.54
 %global unsupported_tools_directory %{_libdir}/nss/unsupported-tools
 %global allTools "certutil cmsutil crlutil derdump modutil pk12util signtool signver ssltap vfychain vfyserv"
 
@@ -13,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          2
+Release:          3
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -24,7 +25,7 @@ BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-de
 BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ gdb
 obsoletes:	  nss-sysinit < %{version}-%{release}
 
-Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_54_RTM/src/%{name}-%{nss_version}.tar.gz
+Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_54_RTM/src/%{name}-%{nss_archive_version}.tar.gz
 Source1:          nss-util.pc
 Source2:          nss-util-config
 Source3:          nss-softokn.pc
@@ -119,7 +120,7 @@ Requires:         man-db
 Help document for NSS
 
 %prep
-%setup -q -n %{name}-%{nss_version}
+%setup -q -n %{name}-%{nss_archive_version}
 
 %patch0 -p0 -b .539183
 
@@ -543,6 +544,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Thu Aug 20 2020 Liquor <lirui130@huawei.com> - 3.54-3
+- nss_version and pkg-version need to be consistent
+
 * Sat Aug 1 2020 Liquor <lirui130@huawei.com> - 3.54-2
 - add the missing header file and fixed error messages
 
