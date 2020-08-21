@@ -1,5 +1,6 @@
 %global nspr_version 4.20.0
-%global nss_version 3.40.1
+%global nss_version 3.54.0
+%global nss_archive_version 3.54
 %global unsupported_tools_directory %{_libdir}/nss/unsupported-tools
 %global allTools "certutil cmsutil crlutil derdump modutil pk12util signtool signver ssltap vfychain vfyserv"
 
@@ -8,11 +9,12 @@
 %global dracut_conf_dir %{dracutlibdir}/dracut.conf.d
 
 %bcond_with test
+%bcond_without dbm
 
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          12
+Release:          1
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -23,7 +25,7 @@ BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-de
 BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ gdb
 obsoletes:	  nss-sysinit < %{version}-%{release}
 
-Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_40_1_RTM/src/%{name}-%{nss_version}.tar.gz
+Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_54_RTM/src/%{name}-%{nss_archive_version}.tar.gz
 Source1:          nss-util.pc
 Source2:          nss-util-config
 Source3:          nss-softokn.pc
@@ -38,10 +40,6 @@ Source14:         blank-key4.db
 Source15:         system-pkcs11.txt
 Source16:         setup-nsssysinit.sh
 Patch0:           nss-539183.patch
-Patch1:           Bug-1412829-reject-empty-supported_signature_algorit.patch
-Patch2:           Bug-1507135-Add-additional-null-checks-to-CMS-messag.patch
-Patch3:           Bug-1507174-Add-additional-null-checks-to-other-CMS-.patch
-Patch4:           fix-core-dump-when-sigd-signerInfos-is-NULL.patch
 
 %description
 Network Security Services (NSS) is a set of libraries designed to
@@ -122,17 +120,9 @@ Requires:         man-db
 Help document for NSS
 
 %prep
-%setup -q -n %{name}-%{nss_version}
+%setup -q -n %{name}-%{nss_archive_version}
 
 %patch0 -p0 -b .539183
-
-pushd nss
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
-popd
-
-%patch4 -p1
 
 %build
 
@@ -168,15 +158,16 @@ export NSPR_LIB_DIR=%{_libdir}
 export NSS_USE_SYSTEM_SQLITE=1
 export NSS_ALLOW_SSLKEYLOGFILE=1
 
+%if %{with dbm}
+%else
+export NSS_DISABLE_DBM=1
+%endif
+
 %ifnarch noarch
 %if 0%{__isa_bits} == 64
 export USE_64=1
 %endif
 %endif
-
-##### phase 2: build the rest of nss
-make -C ./nss/coreconf
-make -C ./nss/lib/dbm
 
 # Set the policy file location
 # if set NSS will always check for the policy file and load if it exists
@@ -184,7 +175,8 @@ export POLICY_FILE="nss.config"
 # location of the policy file
 export POLICY_PATH="/etc/crypto-policies/back-ends"
 
-make -C ./nss
+make -C ./nss all
+make -C ./nss latest
 
 # build the man pages clean
 pushd ./nss
@@ -324,7 +316,7 @@ install -p -m 644 %{SOURCE14} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/key4.db
 install -p -m 644 %{SOURCE15} $RPM_BUILD_ROOT/%{_sysconfdir}/pki/nssdb/pkcs11.txt
 
 # Copy the binary libraries we want
-for file in libnssutil3.so libsoftokn3.so libnssdbm3.so libfreebl3.so libfreeblpriv3.so libnss3.so libnsssysinit.so libsmime3.so libssl3.so
+for file in libnssutil3.so libsoftokn3.so %{?with_dbm:libnssdbm3.so} libfreebl3.so libfreeblpriv3.so libnss3.so libnsssysinit.so libsmime3.so libssl3.so
 do
   install -p -m 755 dist/*.OBJ/lib/$file $RPM_BUILD_ROOT/%{_libdir}
 done
@@ -354,7 +346,7 @@ do
 done
 
 # Copy some freebl include files we also want
-for file in blapi.h alghmac.h
+for file in blapi.h alghmac.h cmac.h
 do
   install -p -m 644 dist/private/nss/$file $RPM_BUILD_ROOT/%{_includedir}/nss3
 done
@@ -390,10 +382,10 @@ install -c -m 644 ./dist/docs/nroff/pp.1 $RPM_BUILD_ROOT%{_mandir}/man1/pp.1
 #$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libnssdbm3.so
 
 %post
-update-crypto-policies
+update-crypto-policies &> /dev/null || :
 
 %postun
-update-crypto-policies
+update-crypto-policies &> /dev/null || :
 
 %files
 %{!?_licensedir:%global license %%doc}
@@ -516,8 +508,10 @@ update-crypto-policies
 #%{_libdir}/libfreebl3.chk
 %{_libdir}/libfreeblpriv3.so
 #%{_libdir}/libfreeblpriv3.chk
+%if %{with_dbm}
 %{_libdir}/libnssdbm3.so
 #%{_libdir}/libnssdbm3.chk
+%endif
 %{_libdir}/libsoftokn3.so
 #%{_libdir}/libsoftokn3.chk
 %dir %{_libdir}/nss
@@ -532,6 +526,7 @@ update-crypto-policies
 %files softokn-devel
 %{_libdir}/libfreebl.a
 %{_includedir}/nss3/blapi.h
+%{_includedir}/nss3/cmac.h
 %{_includedir}/nss3/blapit.h
 %{_includedir}/nss3/alghmac.h
 %{_includedir}/nss3/lowkeyi.h
@@ -548,6 +543,9 @@ update-crypto-policies
 %doc %{_mandir}/man*
 
 %changelog
+* Fri Aug 21 2020 wangchen <wangchen137@huawei.com> - 3.54-1
+- update to 3.54
+
 * Thu Apr 30 2020 openEuler Buildteam <buildteam@openeuler.org> - 3.40.1-12
 - fix core dump when sigd-signerInfos is NULL
 
