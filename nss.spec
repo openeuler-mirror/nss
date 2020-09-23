@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          1
+Release:          2
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -40,6 +40,9 @@ Source14:         blank-key4.db
 Source15:         system-pkcs11.txt
 Source16:         setup-nsssysinit.sh
 Patch0:           nss-539183.patch
+Patch1:           0001-CVE-2020-6829-and-CVE-2020-12400.patch
+Patch2:           0002-CVE-2020-6829-and-CVE-2020-12400.patch
+Patch3:           CVE-2020-12401.patch
 
 %description
 Network Security Services (NSS) is a set of libraries designed to
@@ -123,6 +126,9 @@ Help document for NSS
 %setup -q -n %{name}-%{nss_archive_version}
 
 %patch0 -p0 -b .539183
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
 
 %build
 
@@ -543,6 +549,9 @@ update-crypto-policies &> /dev/null || :
 %doc %{_mandir}/man*
 
 %changelog
+* Wed Sep 23 2020 zhangxingliang <zhangxingliang3@huawei.com> - 3.54-2
+- fix CVE-2020-6829 CVE-2020-12400 CVE-2020-12401
+
 * Fri Aug 21 2020 wangchen <wangchen137@huawei.com> - 3.54-1
 - update to 3.54
 
