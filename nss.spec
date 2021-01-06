@@ -1,4 +1,4 @@
-%global nspr_version 4.20.0
+%global nspr_version 4.26.0
 %global nss_version 3.54.0
 %global nss_archive_version 3.54
 %global unsupported_tools_directory %{_libdir}/nss/unsupported-tools
@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          4
+Release:          5
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -550,6 +550,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Wed Jan 6 2021 panxiaohe <panxiaohe@huawei.com> - 3.54-5
+- fix nspr_version in spec
+
 * Wed Sep 23 2020 zhangxingliang <zhangxingliang3@huawei.com> - 3.54-4
 - fix CVE-2020-6829 CVE-2020-12400 CVE-2020-12401
 
