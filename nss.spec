@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          7
+Release:          8
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -186,7 +186,7 @@ export POLICY_FILE="nss.config"
 # location of the policy file
 export POLICY_PATH="/etc/crypto-policies/back-ends"
 
-make -C ./nss all
+make -j16 -C ./nss all
 make -C ./nss latest
 
 # build the man pages clean
@@ -554,6 +554,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Tue Mar 16 2021 yixiangzhike <zhangxingliang3@huawei.com> - 3.54-8
+- optimize compilation time
+
 * Tue Feb 9 2021 maminjie <maminjie1@huawei.com> - 3.54-7
 - fix 0002-keygen-rsa hanging of certmonger
 
