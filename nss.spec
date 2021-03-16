@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          4
+Release:          5
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -183,7 +183,7 @@ export POLICY_FILE="nss.config"
 # location of the policy file
 export POLICY_PATH="/etc/crypto-policies/back-ends"
 
-make -C ./nss all
+make -j16 -C ./nss all
 make -C ./nss latest
 
 # build the man pages clean
@@ -551,6 +551,9 @@ update-crypto-policies &> /dev/null || :
 %doc %{_mandir}/man*
 
 %changelog
+* Tue Mar 16 2021 yixiangzhike <zhangxingliang3@huawei.com> - 3.54-5
+- optimize compilation time
+
 * Tue Jan 19 2021 zoulin <zoulin13@huawei.com> - 3.54-4
 - fix CVE-2020-25648
 
