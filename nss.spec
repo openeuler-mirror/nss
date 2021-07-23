@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          9
+Release:          10
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -22,7 +22,7 @@ Requires:         nspr >= %{nspr_version} nss-util >= %{nss_version} nss-softokn
 Requires:         p11-kit-trust crypto-policies nss-help
 Requires(post):   coreutils, sed
 BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-devel
-BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ gdb
+BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ 
 obsoletes:	  nss-sysinit < %{version}-%{release}
 
 Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_54_RTM/src/%{name}-%{nss_archive_version}.tar.gz
@@ -558,6 +558,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Fri Jul 23 2021 yuanxin <yuanxin24@huawei.com> - 3.54-10
+- remove BuildRequires gdb
+
 * Wed Mar 17 2021 yixiangzhike <zhangxingliang3@huawei.com> - 3.54-9
 - fix CVE-2020-12403
 
