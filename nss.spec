@@ -1,6 +1,6 @@
 %global nspr_version 4.26.0
-%global nss_version 3.54.0
-%global nss_archive_version 3.54
+%global nss_version 3.72.0
+%global nss_archive_version 3.72
 %global unsupported_tools_directory %{_libdir}/nss/unsupported-tools
 %global allTools "certutil cmsutil crlutil derdump modutil pk12util signtool signver ssltap vfychain vfyserv"
 
@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          10
+Release:          1
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -40,13 +40,6 @@ Source14:         blank-key4.db
 Source15:         system-pkcs11.txt
 Source16:         setup-nsssysinit.sh
 Patch0:           nss-539183.patch
-Patch1:           0001-CVE-2020-6829-and-CVE-2020-12400.patch
-Patch2:           0002-CVE-2020-6829-and-CVE-2020-12400.patch
-Patch3:           CVE-2020-12401.patch
-Patch4:           backport-CVE-2020-25648-tighten-CSS-handling-in-compatibility-mode.patch
-Patch5:		  0001-work-around-btrfs-sqlite.patch
-Patch6:	          backport-0001-CVE-2020-12403.patch
-Patch7:	          backport-0002-CVE-2020-12403.patch
 
 %description
 Network Security Services (NSS) is a set of libraries designed to
@@ -130,13 +123,6 @@ Help document for NSS
 %setup -q -n %{name}-%{nss_archive_version}
 
 %patch0 -p0 -b .539183
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
-%patch4 -p1
-%patch5 -p1
-%patch6 -p1
-%patch7 -p1
 
 %build
 
@@ -558,6 +544,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Mon Nov 29 2021 liudabo <liudabo1@huawei.com> - 3.72-1
+- upgrade version to 3.72
+
 * Fri Jul 23 2021 yuanxin <yuanxin24@huawei.com> - 3.54-10
 - remove BuildRequires gdb
 
