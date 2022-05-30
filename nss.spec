@@ -1,6 +1,6 @@
-%global nspr_version 4.26.0
-%global nss_version 3.72.0
-%global nss_archive_version 3.72
+%global nspr_version 4.32.0
+%global nss_version 3.74.0
+%global nss_archive_version 3.74
 %global unsupported_tools_directory %{_libdir}/nss/unsupported-tools
 %global allTools "certutil cmsutil crlutil derdump modutil pk12util signtool signver ssltap vfychain vfyserv"
 
@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          2
+Release:          1
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -25,7 +25,7 @@ BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-de
 BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ 
 obsoletes:	  nss-sysinit < %{version}-%{release}
 
-Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_54_RTM/src/%{name}-%{nss_archive_version}.tar.gz
+Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_74_RTM/src/%{name}-%{nss_archive_version}.tar.gz
 Source1:          nss-util.pc
 Source2:          nss-util-config
 Source3:          nss-softokn.pc
@@ -39,9 +39,6 @@ Source13:         blank-cert9.db
 Source14:         blank-key4.db
 Source15:         system-pkcs11.txt
 Source16:         setup-nsssysinit.sh
-Patch0:           nss-539183.patch
-
-Patch6000:        backport-CVE-2021-43527.patch
 
 %description
 Network Security Services (NSS) is a set of libraries designed to
@@ -124,12 +121,8 @@ Help document for NSS
 %prep
 %setup -q -n %{name}-%{nss_archive_version}
 
-%patch0 -p0 -b .539183
-pushd nss
-%patch6000 -p1
-popd
-
 %build
+
 
 export NSS_FORCE_FIPS=1
 # Enable compiler optimizations and disable debugging code
@@ -173,7 +166,6 @@ export NSS_DISABLE_DBM=1
 export USE_64=1
 %endif
 %endif
-
 
 # Set the policy file location
 # if set NSS will always check for the policy file and load if it exists
@@ -549,6 +541,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Sun May 29 2022 Jingwiw <wangjingwei@iscas.ac.cn> - 3.74.0-1
+- upgrade version to 3.74
+
 * Tue Dec 28 2021 shangyibin <shangyibin1@huawei.com> - 3.72-2
 - fix CVE-2021-43527
 
