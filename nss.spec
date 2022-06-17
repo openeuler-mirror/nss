@@ -1,6 +1,6 @@
 %global nspr_version 4.32.0
-%global nss_version 3.74.0
-%global nss_archive_version 3.74
+%global nss_version 3.76.0
+%global nss_archive_version 3.76
 %global unsupported_tools_directory %{_libdir}/nss/unsupported-tools
 %global allTools "certutil cmsutil crlutil derdump modutil pk12util signtool signver ssltap vfychain vfyserv"
 
@@ -541,6 +541,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Mon Jul 11 2022 Jingwiw <wangjingwei@iscas.ac.cn> - 3.76.0-1
+- upgrade version to 3.76
+
 * Sun May 29 2022 Jingwiw <wangjingwei@iscas.ac.cn> - 3.74.0-1
 - upgrade version to 3.74
 

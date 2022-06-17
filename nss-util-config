@@ -3,7 +3,7 @@
 prefix=/usr
 
 major_version=3
-minor_version=74
+minor_version=76
 patch_version=0
 
 usage()

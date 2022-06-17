@@ -5,7 +5,7 @@ includedir=/usr/include/nss3
 
 Name: NSS-UTIL
 Description: Network Security Services Utility Library
-Version: 3.74
+Version: 3.76
 Requires: nspr >= 4.32.0
 Libs: -L${libdir} -lnssutil3
 Cflags: -I${includedir}
