@@ -14,12 +14,12 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          8
+Release:          9
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
 Requires:         nspr >= %{nspr_version} nss-util >= %{nss_version} nss-softokn%{_isa} >= %{nss_version}
-Requires:         p11-kit-trust crypto-policies nss-help
+Requires:         p11-kit-trust crypto-policies
 Requires(post):   coreutils, sed
 BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-devel
 BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ gdb
@@ -72,7 +72,7 @@ Header and Library files for doing development with Network Security Services.
 
 %package util
 Summary:          Network Security Services Utilities Library
-Requires:         nspr >= %{nspr_version} nss-help
+Requires:         nspr >= %{nspr_version}
 Requires:         %{name}%{?_isa} = %{version}-%{release}
 Provides:         nss-tools = %{version}-%{release}
 Obsoletes:        nss-tools < %{version}-%{release}
@@ -560,6 +560,9 @@ update-crypto-policies &> /dev/null || :
 %doc %{_mandir}/man*
 
 %changelog
+* Thu Aug 04 2022 renhongxun <renhongxun@h-partners.com> - 3.54.0-9
+- remove nss-help from Requires of nss and nss-util
+
 * Tue Dec 28 2021 shangyibin <shangyibin1@huawei> - 3.54.0-8
 - fix CVE-2021-43527
 
