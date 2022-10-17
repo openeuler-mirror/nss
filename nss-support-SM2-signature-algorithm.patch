@@ -1,0 +1,338 @@
+From 730ed23bef70e1726c7d2b5ea67e5cabf59aa448 Mon Sep 17 00:00:00 2001
+From: Huaxin Lu <luhuaxin1@huawei.com>
+Date: Sun, 16 Oct 2022 05:02:53 +0800
+Subject: [PATCH 4/4] nss support SM2 signature algorithm
+
+ Co-authored-by:godcansee <liu332084460@foxmail.com>
+---
+ nss/lib/cryptohi/cryptohi.h     |  2 ++
+ nss/lib/cryptohi/seckey.c       |  3 +++
+ nss/lib/cryptohi/secsign.c      | 43 +++++++++++++++++++++++++++++++++
+ nss/lib/cryptohi/secvfy.c       |  5 ++++
+ nss/lib/freebl/ec.c             |  5 +++-
+ nss/lib/freebl/ecdecode.c       |  5 +++-
+ nss/lib/freebl/ecl/ecl-curve.h  | 33 +++++++++++++++++++++++++
+ nss/lib/freebl/ecl/ecl-exp.h    |  1 +
+ nss/lib/freebl/freebl_base.gypi |  1 +
+ nss/lib/freebl/manifest.mn      |  2 ++
+ nss/lib/nss/nss.def             |  6 +++++
+ nss/lib/util/pkcs11t.h          |  2 ++
+ nss/lib/util/secoid.c           |  4 +++
+ nss/lib/util/secoidt.h          |  2 ++
+ 14 files changed, 112 insertions(+), 2 deletions(-)
+
+diff --git a/nss/lib/cryptohi/cryptohi.h b/nss/lib/cryptohi/cryptohi.h
+index 7b66f0b..4f99ef9 100644
+--- a/nss/lib/cryptohi/cryptohi.h
++++ b/nss/lib/cryptohi/cryptohi.h
+@@ -420,6 +420,8 @@ extern SECStatus VFY_VerifyDataWithAlgorithmID(const unsigned char *buf,
+                                                const SECAlgorithmID *algid, SECOidTag *hash,
+                                                void *wincx);
+ 
++SECStatus SEC_CreateSM2Digest(unsigned char *z, SECItem *pub);
++
+ SEC_END_PROTOS
+ 
+ #endif /* _CRYPTOHI_H_ */
+diff --git a/nss/lib/cryptohi/seckey.c b/nss/lib/cryptohi/seckey.c
+index fa13bc3..4bcd43e 100644
+--- a/nss/lib/cryptohi/seckey.c
++++ b/nss/lib/cryptohi/seckey.c
+@@ -520,6 +520,7 @@ seckey_GetKeyType(SECOidTag tag)
+             keyType = dhKey;
+             break;
+         case SEC_OID_ANSIX962_EC_PUBLIC_KEY:
++        case SEC_OID_SM2:
+             keyType = ecKey;
+             break;
+         /* accommodate applications that hand us a signature type when they
+@@ -776,6 +777,7 @@ SECKEY_ECParamsToKeySize(const SECItem *encodedParams)
+ 
+         case SEC_OID_SECG_EC_SECP256K1:
+         case SEC_OID_ANSIX962_EC_PRIME256V1:
++        case SEC_OID_SM2:
+             return 256;
+ 
+         case SEC_OID_ANSIX962_EC_C2PNB272W1:
+@@ -924,6 +926,7 @@ SECKEY_ECParamsToBasePointOrderLen(const SECItem *encodedParams)
+ 
+         case SEC_OID_SECG_EC_SECP256K1:
+         case SEC_OID_ANSIX962_EC_PRIME256V1:
++        case SEC_OID_SM2:
+             return 256;
+ 
+         case SEC_OID_ANSIX962_EC_C2PNB272W1:
+diff --git a/nss/lib/cryptohi/secsign.c b/nss/lib/cryptohi/secsign.c
+index c46b2b1..65627ae 100644
+--- a/nss/lib/cryptohi/secsign.c
++++ b/nss/lib/cryptohi/secsign.c
+@@ -861,3 +861,46 @@ SEC_CreateSignatureAlgorithmParameters(PLArenaPool *arena,
+             return result;
+     }
+ }
++
++// TODO
++const unsigned char zin_default[] = {
++    0x00, 0x80, // id length
++    0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x31, 0x32, 0x33, 0x34,
++    0x35, 0x36, 0x37, 0x38, // default id: 1234567812345678
++    0xff, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
++    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
++    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc, // sm2 a
++    0x28, 0xe9, 0xfa, 0x9e, 0x9d, 0x9f, 0x5e, 0x34, 0x4d, 0x5a, 0x9e, 0x4b,
++    0xcf, 0x65, 0x09, 0xa7, 0xf3, 0x97, 0x89, 0xf5, 0x15, 0xab, 0x8f, 0x92,
++    0xdd, 0xbc, 0xbd, 0x41, 0x4d, 0x94, 0x0e, 0x93, // sm2 b
++    0x32, 0xc4, 0xae, 0x2c, 0x1f, 0x19, 0x81, 0x19, 0x5f, 0x99, 0x04, 0x46,
++    0x6a, 0x39, 0xc9, 0x94, 0x8f, 0xe3, 0x0b, 0xbf, 0xf2, 0x66, 0x0b, 0xe1,
++    0x71, 0x5a, 0x45, 0x89, 0x33, 0x4c, 0x74, 0xc7, // sm2 x
++    0xbc, 0x37, 0x36, 0xa2, 0xf4, 0xf6, 0x77, 0x9c, 0x59, 0xbd, 0xce, 0xe3,
++    0x6b, 0x69, 0x21, 0x53, 0xd0, 0xa9, 0x87, 0x7c, 0xc6, 0x2a, 0x47, 0x40,
++    0x02, 0xdf, 0x32, 0xe5, 0x21, 0x39, 0xf0, 0xa0 // sm2 y
++};
++
++SECStatus SEC_CreateSM2Digest(unsigned char *z, SECItem *pub)
++{
++    unsigned int len;
++    PK11Context *ctx;
++
++    if (!z || !pub || pub->len != 65)
++        return SECFailure;
++
++    ctx = PK11_CreateDigestContext(SEC_OID_SM3);
++    if (!ctx)
++        return SECFailure;
++
++    if (PK11_DigestBegin(ctx) != SECSuccess ||
++        PK11_DigestOp(ctx, zin_default, sizeof(zin_default)) != SECSuccess ||
++        PK11_DigestOp(ctx, pub->data + 1, 64) != SECSuccess ||
++        PK11_DigestFinal(ctx, z, &len, SM3_LENGTH)) {
++        PK11_DestroyContext(ctx, PR_TRUE);
++        return SECFailure;
++    }
++
++    PK11_DestroyContext(ctx, PR_TRUE);
++    return SECSuccess;
++}
+\ No newline at end of file
+diff --git a/nss/lib/cryptohi/secvfy.c b/nss/lib/cryptohi/secvfy.c
+index 2540a54..01362df 100644
+--- a/nss/lib/cryptohi/secvfy.c
++++ b/nss/lib/cryptohi/secvfy.c
+@@ -257,6 +257,8 @@ sec_GetEncAlgFromSigAlg(SECOidTag sigAlg)
+         case SEC_OID_ANSIX962_ECDSA_SIGNATURE_RECOMMENDED_DIGEST:
+         case SEC_OID_ANSIX962_ECDSA_SIGNATURE_SPECIFIED_DIGEST:
+             return SEC_OID_ANSIX962_EC_PUBLIC_KEY;
++        case SEC_OID_SM2_WITH_SM3:
++            return SEC_OID_SM2;
+         /* we don't implement MD4 hashes */
+         case SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION:
+         default:
+@@ -399,6 +401,9 @@ sec_DecodeSigAlg(const SECKEYPublicKey *key, SECOidTag sigAlg,
+                 return SECFailure;
+             }
+             break;
++        case SEC_OID_SM2_WITH_SM3:
++            *hashalg = SEC_OID_SM3;
++            break;
+         /* we don't implement MD4 hashes */
+         case SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION:
+         default:
+diff --git a/nss/lib/freebl/ec.c b/nss/lib/freebl/ec.c
+index 73a625a..bf2aea7 100644
+--- a/nss/lib/freebl/ec.c
++++ b/nss/lib/freebl/ec.c
+@@ -15,6 +15,7 @@
+ #include "mplogic.h"
+ #include "ec.h"
+ #include "ecl.h"
++#include "sm2.h"
+ 
+ static const ECMethod kMethods[] = {
+     { ECCurve25519,
+@@ -907,7 +908,9 @@ ECDSA_SignDigest(ECPrivateKey *key, SECItem *signature, const SECItem *digest)
+         goto cleanup;
+ 
+     /* Generate ECDSA signature with the specified k value */
+-    rv = ECDSA_SignDigestWithSeed(key, signature, digest, kBytes, len);
++    rv = key->ecParams.name == ECCurve_sm2p256v1 ?
++        SM2_SignDigestWithSeed(key, signature, digest, kBytes, len) :
++        ECDSA_SignDigestWithSeed(key, signature, digest, kBytes, len);
+ 
+ cleanup:
+     if (kBytes) {
+diff --git a/nss/lib/freebl/ecdecode.c b/nss/lib/freebl/ecdecode.c
+index 652ad42..4c090d2 100644
+--- a/nss/lib/freebl/ecdecode.c
++++ b/nss/lib/freebl/ecdecode.c
+@@ -179,7 +179,10 @@ EC_FillParams(PLArenaPool *arena, const SECItem *encodedParams,
+             CHECK_SEC_OK(gf_populate_params_bytes(ECCurve25519, ec_field_plain,
+                                                   params));
+             break;
+-
++        case SEC_OID_SM2:
++            /* Populate params for Curve SM2 */
++           CHECK_SEC_OK(gf_populate_params_bytes(ECCurve_sm2p256v1, ec_field_plain,
++                                                 params));
+         default:
+             break;
+     };
+diff --git a/nss/lib/freebl/ecl/ecl-curve.h b/nss/lib/freebl/ecl/ecl-curve.h
+index fc8003f..e64fe4d 100644
+--- a/nss/lib/freebl/ecl/ecl-curve.h
++++ b/nss/lib/freebl/ecl/ecl-curve.h
+@@ -206,6 +206,38 @@ static const ECCurveBytes ecCurve_25519 = {
+     KU_KEY_AGREEMENT
+ };
+ 
++static const PRUint8 sm2_irr[32] =
++    { 0xff, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
++      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
++      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
++static const PRUint8 sm2_a[32] =
++    { 0xff, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
++      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
++      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc };
++static const PRUint8 sm2_b[32] =
++    { 0x28, 0xe9, 0xfa, 0x9e, 0x9d, 0x9f, 0x5e, 0x34, 0x4d, 0x5a, 0x9e, 0x4b,
++      0xcf, 0x65, 0x09, 0xa7, 0xf3, 0x97, 0x89, 0xf5, 0x15, 0xab, 0x8f, 0x92,
++      0xdd, 0xbc, 0xbd, 0x41, 0x4d, 0x94, 0x0e, 0x93 };
++static const PRUint8 sm2_x[32] =
++    { 0x32, 0xc4, 0xae, 0x2c, 0x1f, 0x19, 0x81, 0x19, 0x5f, 0x99, 0x04, 0x46,
++      0x6a, 0x39, 0xc9, 0x94, 0x8f, 0xe3, 0x0b, 0xbf, 0xf2, 0x66, 0x0b, 0xe1,
++      0x71, 0x5a, 0x45, 0x89, 0x33, 0x4c, 0x74, 0xc7 };
++static const PRUint8 sm2_y[32] =
++    { 0xbc, 0x37, 0x36, 0xa2, 0xf4, 0xf6, 0x77, 0x9c, 0x59, 0xbd, 0xce, 0xe3,
++      0x6b, 0x69, 0x21, 0x53, 0xd0, 0xa9, 0x87, 0x7c, 0xc6, 0x2a, 0x47, 0x40,
++      0x02, 0xdf, 0x32, 0xe5, 0x21, 0x39, 0xf0, 0xa0 };
++static const PRUint8 sm2_order[32] =
++    { 0xff, 0xff, 0xff, 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
++      0xff, 0xff, 0xff, 0xff, 0x72, 0x03, 0xdf, 0x6b, 0x21, 0xc6, 0x05, 0x2b,
++      0x53, 0xbb, 0xf4, 0x09, 0x39, 0xd5, 0x41, 0x23 };
++
++static const ECCurveBytes ecCurve_sm2p256v1 = {
++    "sm2p256v1", ECField_GFp, 256,
++    sm2_irr, sm2_a, sm2_b, sm2_x, sm2_y, sm2_order, NULL,
++    8, 128, 66, 32, // TODO
++    KU_KEY_AGREEMENT
++};
++
+ /* mapping between ECCurveName enum and pointers to ECCurveParams */
+ static const ECCurveBytes *ecCurve_map[] = {
+     NULL,               /* ECCurve_noName */
+@@ -267,6 +299,7 @@ static const ECCurveBytes *ecCurve_map[] = {
+     NULL,               /* ECCurve_WTLS_8 */
+     NULL,               /* ECCurve_WTLS_9 */
+     &ecCurve_25519,     /* ECCurve25519 */
++    &ecCurve_sm2p256v1, /* ECCurve_sm2p256v1 */
+     NULL                /* ECCurve_pastLastCurve */
+ };
+ 
+diff --git a/nss/lib/freebl/ecl/ecl-exp.h b/nss/lib/freebl/ecl/ecl-exp.h
+index 44adb8a..d071fc9 100644
+--- a/nss/lib/freebl/ecl/ecl-exp.h
++++ b/nss/lib/freebl/ecl/ecl-exp.h
+@@ -132,6 +132,7 @@ typedef enum {
+     /* ECCurve_WTLS_12 == ECCurve_NIST_P224 */
+ 
+     ECCurve25519,
++    ECCurve_sm2p256v1,
+ 
+     ECCurve_pastLastCurve
+ } ECCurveName;
+diff --git a/nss/lib/freebl/freebl_base.gypi b/nss/lib/freebl/freebl_base.gypi
+index 85a569f..253ce8d 100644
+--- a/nss/lib/freebl/freebl_base.gypi
++++ b/nss/lib/freebl/freebl_base.gypi
+@@ -59,6 +59,7 @@
+     'sha_fast.c',
+     'shvfy.c',
+     'sm3.c',
++    'sm2.c',
+     'sysrand.c',
+     'tlsprfalg.c',
+   ],
+diff --git a/nss/lib/freebl/manifest.mn b/nss/lib/freebl/manifest.mn
+index fd3218d..2dbf7c9 100644
+--- a/nss/lib/freebl/manifest.mn
++++ b/nss/lib/freebl/manifest.mn
+@@ -158,6 +158,7 @@ CSRCS = \
+ 	$(LOWHASH_SRCS) \
+ 	$(EXTRA_SRCS) \
+ 	sm3.c \
++	sm2.c \
+ 	$(NULL)
+ 
+ ifndef NSS_DISABLE_DEPRECATED_SEED
+@@ -188,6 +189,7 @@ ALL_HDRS =  \
+ 	vis_proto.h \
+ 	seed.h \
+ 	sm3.h \
++	sm2.h \
+ 	$(NULL)
+ 
+ 
+diff --git a/nss/lib/nss/nss.def b/nss/lib/nss/nss.def
+index e87395b..2bc4965 100644
+--- a/nss/lib/nss/nss.def
++++ b/nss/lib/nss/nss.def
+@@ -1238,3 +1238,9 @@ PK11_SlotGetLastFIPSStatus;
+ ;+    local:
+ ;+       *;
+ ;+};
++;+NSS_openEuler {
++;+    global:
++SEC_CreateSM2Digest;
++;+    local:
++;+       *;
++;+};
+diff --git a/nss/lib/util/pkcs11t.h b/nss/lib/util/pkcs11t.h
+index 93cb8d1..a1e3323 100644
+--- a/nss/lib/util/pkcs11t.h
++++ b/nss/lib/util/pkcs11t.h
+@@ -1243,6 +1243,8 @@ typedef CK_ULONG CK_MECHANISM_TYPE;
+ 
+ /* new for TODO */
+ #define CKM_SM3 0x0000402eUL
++#define CKM_SM2 0x0000402fUL
++#define CKM_SM2_WITH_SM3 0x00004030UL
+ 
+ #define CKM_VENDOR_DEFINED 0x80000000UL
+ 
+diff --git a/nss/lib/util/secoid.c b/nss/lib/util/secoid.c
+index fd620e9..d68f1b6 100644
+--- a/nss/lib/util/secoid.c
++++ b/nss/lib/util/secoid.c
+@@ -606,6 +606,8 @@ CONST_OID curve25519[] = { 0x2B, 0x06, 0x01, 0x04, 0x01, 0xDA, 0x47, 0x0F, 0x01
+  * 1.2.156.197.1.401
+  */
+ CONST_OID sm3[] = { 0x2A, 0x81, 0x1C, 0xCF, 0x55, 0x01, 0x83, 0x11 };
++CONST_OID sm2[] = { 0x2A, 0x81, 0x1C, 0xCF, 0x55, 0x01, 0x82, 0x2D };
++CONST_OID sm2_with_sm3[] = { 0x2A, 0x81, 0x1C, 0xCF, 0x55, 0x01, 0x83, 0x75 };
+ 
+ #define OI(x)                                  \
+     {                                          \
+@@ -1801,6 +1803,8 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
+        "IPsec User",
+        CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION),
+     OD(sm3, SEC_OID_SM3, "SM3", CKM_SM3, INVALID_CERT_EXTENSION),
++    OD(sm2, SEC_OID_SM2, "SM2", CKM_SM2, INVALID_CERT_EXTENSION),
++    OD(sm2_with_sm3, SEC_OID_SM2_WITH_SM3, "SM2_WITH_SM3", CKM_SM2_WITH_SM3, INVALID_CERT_EXTENSION),
+ };
+ 
+ /* PRIVATE EXTENDED SECOID Table
+diff --git a/nss/lib/util/secoidt.h b/nss/lib/util/secoidt.h
+index 984b7fb..fe49661 100644
+--- a/nss/lib/util/secoidt.h
++++ b/nss/lib/util/secoidt.h
+@@ -503,6 +503,8 @@ typedef enum {
+     SEC_OID_EXT_KEY_USAGE_IPSEC_USER = 363,
+ 
+     SEC_OID_SM3 = 364,
++    SEC_OID_SM2 = 365,
++    SEC_OID_SM2_WITH_SM3 = 366,
+ 
+     SEC_OID_TOTAL
+ } SECOidTag;
+-- 
+2.33.0
+
