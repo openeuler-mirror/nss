@@ -1,0 +1,179 @@
+From 76754353988703719623717de9d1252434b69507 Mon Sep 17 00:00:00 2001
+From: Huaxin Lu <luhuaxin1@huawei.com>
+Date: Sun, 2 Oct 2022 19:05:00 +0800
+Subject: [PATCH 3/4] nss add implement of SM2 signature algorithm
+
+Co-authored-by: godcansee <liu332084460@foxmail.com>
+Signed-off-by: Huaxin Lu <luhuaxin1@huawei.com>
+---
+ lib/freebl/sm2.c | 134 +++++++++++++++++++++++++++++++++++++++++++++++
+ lib/freebl/sm2.h |  16 ++++++
+ 2 files changed, 150 insertions(+)
+ create mode 100644 lib/freebl/sm2.c
+ create mode 100644 lib/freebl/sm2.h
+
+diff --git a/lib/freebl/sm2.c b/lib/freebl/sm2.c
+new file mode 100644
+index 0000000..f80b8ca
+--- /dev/null
++++ b/lib/freebl/sm2.c
+@@ -0,0 +1,134 @@
++/* This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this
++ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
++
++#ifdef FREEBL_NO_DEPEND
++#include "stubs.h"
++#endif
++
++#include "blapi.h"
++#include "blapii.h"
++#include "prerr.h"
++#include "secerr.h"
++#include "secmpi.h"
++#include "secitem.h"
++#include "ecl.h"
++
++SECStatus
++SM2_SignDigestWithSeed(ECPrivateKey *key, SECItem *signature,
++                       const SECItem *digest, const unsigned char *kb, const int kblen)
++{
++    SECStatus rv = SECFailure;
++    mp_int e, k, x1, y1, r, n, dA, tmp, s;
++    mp_err err = MP_OKAY;
++    ECParams *ecParams;
++    ECGroup *group;
++    SECItem kGpoint = { siBuffer, NULL, 0 };
++    mp_size olen;
++
++    if (!key || !signature || !signature->data || !digest || !kb || (kblen < 0)) {
++        PORT_SetError(SEC_ERROR_INVALID_ARGS);
++        return SECFailure;
++    }
++
++    ecParams = &(key->ecParams);
++    olen = ecParams->order.len;
++    if (signature->len < 2 * olen) {
++        PORT_SetError(SEC_ERROR_OUTPUT_LEN);
++        return SECFailure;
++    }
++
++    CHECK_MPI_OK(mp_init(&e));
++    CHECK_MPI_OK(mp_init(&k));
++    CHECK_MPI_OK(mp_init(&x1));
++    CHECK_MPI_OK(mp_init(&y1));
++    CHECK_MPI_OK(mp_init(&r));
++    CHECK_MPI_OK(mp_init(&n));
++    CHECK_MPI_OK(mp_init(&dA));
++    CHECK_MPI_OK(mp_init(&tmp));
++    CHECK_MPI_OK(mp_init(&s));
++    CHECK_MPI_OK(mp_init(&tmp));
++    CHECK_MPI_OK(mp_init(&s));
++
++    SECITEM_TO_MPINT(key->privateValue, &dA);
++    SECITEM_TO_MPINT(*digest, &e);
++    SECITEM_TO_MPINT(ecParams->order, &n);
++
++    CHECK_MPI_OK(mp_read_unsigned_octets(&k, kb, kblen));
++
++    /* Make sure k is in the interval [1, n-1] */
++    if ((mp_cmp_z(&k) <= 0) || (mp_cmp(&k, &n) >= 0)) {
++        PORT_SetError(SEC_ERROR_NEED_RANDOM);
++        goto cleanup;
++    }
++
++    /* (x1, y1) = [k]G */
++    group = ECGroup_fromName(ecParams->name);
++    if (!group)
++        goto cleanup;
++
++    kGpoint.len = EC_GetPointSize(ecParams);
++    kGpoint.data = PORT_Alloc(kGpoint.len);
++    if (kGpoint.data == NULL)
++        goto cleanup;
++
++    CHECK_MPI_OK(ECPoints_mul(group, &k, NULL, NULL, NULL, &x1, &y1));
++
++    /* r = (e + x1) mod n */
++    CHECK_MPI_OK(mp_addmod(&e, &x1, &n, &r));
++
++    /* r != 0 */
++    if (mp_cmp_z(&r) == 0) {
++        PORT_SetError(SEC_ERROR_NEED_RANDOM);
++        goto cleanup;
++    }
++
++    /* r + k != n */
++    CHECK_MPI_OK(mp_add(&r, &k, &tmp));
++    if (mp_cmp(&tmp, &n) == 0) {
++        PORT_SetError(SEC_ERROR_NEED_RANDOM);
++        goto cleanup;
++    }
++
++    /* s = ((d + 1)^-1 * (k - r * dA)) mod n */
++    CHECK_MPI_OK(mp_add_d(&dA, 1, &tmp));
++    CHECK_MPI_OK(mp_mod (&tmp, &n, &s));
++    CHECK_MPI_OK(mp_invmod (&s, &n, &s));
++    CHECK_MPI_OK(mp_mulmod (&r, &dA, &n, &tmp));
++    CHECK_MPI_OK(mp_submod (&k, &tmp, &n, &tmp));
++    CHECK_MPI_OK(mp_mulmod (&s, &tmp, &n, &s));
++
++    /* s != 0 */
++    if (mp_cmp_z(&s) == 0) {
++        PORT_SetError(SEC_ERROR_NEED_RANDOM);
++        goto cleanup;
++    }
++
++    CHECK_MPI_OK(mp_to_fixlen_octets(&r, signature->data, olen));
++    CHECK_MPI_OK(mp_to_fixlen_octets(&s, signature->data + olen, olen));
++
++    signature->len = 2 * olen;
++    rv = SECSuccess;
++    err = MP_OKAY;
++
++cleanup:
++    mp_clear(&e);
++    mp_clear(&k);
++    mp_clear(&x1);
++    mp_clear(&y1);
++    mp_clear(&r);
++    mp_clear(&n);
++    mp_clear(&dA);
++    mp_clear(&tmp);
++    mp_clear(&s);
++
++    if (kGpoint.data)
++        PORT_ZFree(kGpoint.data, kGpoint.len);
++
++    if (err) {
++        MP_TO_SEC_ERROR(err);
++        rv = SECFailure;
++    }
++
++    return rv;
++}
+diff --git a/lib/freebl/sm2.h b/lib/freebl/sm2.h
+new file mode 100644
+index 0000000..0e2072c
+--- /dev/null
++++ b/lib/freebl/sm2.h
+@@ -0,0 +1,16 @@
++/* This Source Code Form is subject to the terms of the Mozilla Public
++ * License, v. 2.0. If a copy of the MPL was not distributed with this
++ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
++
++#ifndef _SM2_H_
++#define _SM2_H_
++
++
++#include <blapit.h>
++
++SECStatus
++SM2_SignDigestWithSeed(ECPrivateKey *key, SECItem *signature,
++                       const SECItem *digest, const unsigned char *kb, const int kblen);
++
++#endif
++
+-- 
+2.33.0
+

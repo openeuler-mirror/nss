@@ -1,22 +1,22 @@
-From 633bdaae41f18da4bee5c4464c917b76f7ed9313 Mon Sep 17 00:00:00 2001
+From c4222d2434eb877fc077cdb338ac22ab6779f412 Mon Sep 17 00:00:00 2001
 From: godcansee <liu332084460@foxmail.com>
-Date: Sun, 16 Oct 2022 04:58:00 +0800
-Subject: [PATCH 1/4] nss-add-implement-of-SM3-digest-algorithm
+Date: Tue, 27 Sep 2022 19:55:55 +0800
+Subject: [PATCH 1/4] nss add implement of SM3 digest algorithm
 
-Co-authored-by:Huaxin Lu <luhuaxin1@huawei.com>
+Signed-off-by: Huaxin Lu <luhuaxin1@huawei.com>
 ---
- nss/lib/freebl/sm3.c | 285 +++++++++++++++++++++++++++++++++++++++++++
- nss/lib/freebl/sm3.h |  23 ++++
- 2 files changed, 308 insertions(+)
- create mode 100644 nss/lib/freebl/sm3.c
- create mode 100644 nss/lib/freebl/sm3.h
+ lib/freebl/sm3.c | 274 +++++++++++++++++++++++++++++++++++++++++++++++
+ lib/freebl/sm3.h |  19 ++++
+ 2 files changed, 293 insertions(+)
+ create mode 100644 lib/freebl/sm3.c
+ create mode 100644 lib/freebl/sm3.h
 
-diff --git a/nss/lib/freebl/sm3.c b/nss/lib/freebl/sm3.c
+diff --git a/lib/freebl/sm3.c b/lib/freebl/sm3.c
 new file mode 100644
-index 0000000..7c1137f
+index 0000000..27751ff
 --- /dev/null
-+++ b/nss/lib/freebl/sm3.c
-@@ -0,0 +1,285 @@
++++ b/lib/freebl/sm3.c
+@@ -0,0 +1,274 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,14 +25,15 @@ index 0000000..7c1137f
 +#include "stubs.h"
 +#endif
 +
++#include "prerr.h"
 +#include "prtypes.h"
 +#include "prlong.h"
 +#include "secport.h"
-+#include "blapi.h"
 +#include "secerr.h"
++#include "blapi.h"
 +#include "sm3.h"
 +
-+#define ROTATE(a,n)     (((a)<<(n))|(((a)&0xffffffff)>>(32-(n))))
++#define ROTATE(a,n)     (((a) << (n)) | (((a) & 0xffffffff) >> (32 - (n))))
 +
 +#define FF0(X,Y,Z) (X ^ Y ^ Z)
 +#define GG0(X,Y,Z) (X ^ Y ^ Z)
@@ -42,28 +43,22 @@ index 0000000..7c1137f
 +
 +#define P1(X) (X ^ ROTATE(X, 15) ^ ROTATE(X, 23))
 +
-+#define Get_N(l, c, n) (l = (PRUint32)(((*(PRUint8*)(c + n)) << 24)|((*(PRUint8*)(c + n + 1)) << 16)|((*(PRUint8*)(c + n + 2)) << 8)|((*(PRUint8*)(c + n + 3)))))
-+#define Put_N(p, N, n) ((*(PRUint8*)(p + n)) = N)
-+#define Put_32(p, N, n) \
-+	 ((*(PRUint8*)(p + n)) = (PRUint8)((N) >> 24), \
-+	  (*(PRUint8*)(p + n + 1)) = (PRUint8)((N) >> 16), \
-+	  (*(PRUint8*)(p + n + 2)) = (PRUint8)((N) >> 8), \
-+	  (*(PRUint8*)(p + n + 3)) = (PRUint8)(N))
++#define Get_32(l, c) ((l) = (PRUint32)(((*((PRUint8*)(c))) << 24) | \
++                                       ((*((PRUint8*)(c) + 1)) << 16) | \
++                                       ((*((PRUint8*)(c) + 2)) << 8) | \
++                                       ((*((PRUint8*)(c) + 3)))))
 +
-+struct SM3ContextStr {
-+    PRUint32 A, B, C, D, E, F, G, H;
-+    PRUint32 Nl, Nh;
-+    PRUint8 data[64];
-+    PRUint32 num;
-+};
-+
-+typedef struct SM3ContextStr SM3Context;
++#define Put_32(p, N) ((*((PRUint8*)(p))) = (PRUint8)((N) >> 24), \
++                      (*((PRUint8*)(p) + 1)) = (PRUint8)((N) >> 16), \
++                      (*((PRUint8*)(p) + 2)) = (PRUint8)((N) >> 8), \
++                      (*((PRUint8*)(p) + 3)) = (PRUint8)(N))
 +
 +void processOfSM3(SM3Context *ctx, const unsigned char *p) {
 +    int j;
 +    PRUint32 W[68];
 +    PRUint32 A, B, C, D, E, F, G, H;
 +    PRUint32 SS1, SS2, TT1, TT2;
++
 +    A = ctx->A;
 +    B = ctx->B;
 +    C = ctx->C;
@@ -74,23 +69,23 @@ index 0000000..7c1137f
 +    H = ctx->H;
 +
 +    for (j = 0; j < 16; j++)
-+        Get_N(W[j], p, 4 * j);
++        Get_32(W[j], p + 4 * j);
 +
 +    for (j = 16; j <= 67; j++)
 +        W[j] = P1(W[j - 16] ^ W[j - 9] ^ ROTATE(W[j - 3], 15)) ^ ROTATE(W[j - 13], 7) ^ W[j - 6];
 +
 +    for (j = 0; j < 16; j++) {
 +        SS1 = ROTATE(A, 12);
-+        SS1 = (SS1 + E);
-+        SS1 = (SS1 + ROTATE(0x79cc4519UL, j));
++        SS1 = SS1 + E;
++        SS1 = SS1 + ROTATE(0x79cc4519UL, j);
 +        SS1 = ROTATE(SS1, 7);
 +        SS2 = SS1 ^ ROTATE(A, 12);
-+        TT1 = (FF0(A, B, C) + D);
-+        TT1 = (TT1 + SS2);
-+        TT1 = (TT1 + (W[j] ^ W[j + 4]));
-+        TT2 = (GG0(E, F, G) + H);
-+        TT2 = (TT2 + SS1);
-+        TT2 = (TT2 + W[j]);
++        TT1 = FF0(A, B, C) + D;
++        TT1 = TT1 + SS2;
++        TT1 = TT1 + (W[j] ^ W[j + 4]);
++        TT2 = GG0(E, F, G) + H;
++        TT2 = TT2 + SS1;
++        TT2 = TT2 + W[j];
 +        D = C;
 +        C = ROTATE(B, 9);
 +        B = A;
@@ -103,16 +98,16 @@ index 0000000..7c1137f
 +
 +    for (j = 16; j < 64; j++) {
 +        SS1 = ROTATE(A, 12);
-+        SS1 = (SS1 + E);
-+        SS1 = (SS1 + ROTATE(0x7a879d8aUL, j & 0x1f));
++        SS1 = SS1 + E;
++        SS1 = SS1 + ROTATE(0x7a879d8aUL, j & 0x1f);
 +        SS1 = ROTATE(SS1, 7);
 +        SS2 = SS1 ^ ROTATE(A, 12);
-+        TT1 = (FF16(A, B, C) + D);
-+        TT1 = (TT1 + SS2);
-+        TT1 = (TT1 + (W[j] ^ W[j + 4]));
-+        TT2 = (GG16(E, F, G) + H);
-+        TT2 = (TT2 + SS1);
-+        TT2 = (TT2 + W[j]);
++        TT1 = FF16(A, B, C) + D;
++        TT1 = TT1 + SS2;
++        TT1 = TT1 + (W[j] ^ W[j + 4]);
++        TT2 = GG16(E, F, G) + H;
++        TT2 = TT2 + SS1;
++        TT2 = TT2 + W[j];
 +        D = C;
 +        C = ROTATE(B, 9);
 +        B = A;
@@ -167,20 +162,20 @@ index 0000000..7c1137f
 +SM3_Update(SM3Context *ctx, const unsigned char *input,
 +           unsigned int inputLen)
 +{
-+    unsigned int l;
-+    unsigned char *p;
-+    unsigned int n, rest;
++    PRUint32 l, n, rest;
++    PRUint8 *p;
 +
-+    l = (unsigned int)((ctx->Nl + (inputLen << 3)) & 0xffffffff);
-+    if (l < (unsigned int)ctx->Nl)
++    l = (ctx->Nl + (inputLen << 3)) & 0xffffffff;
++    if (l < ctx->Nl)
 +        ctx->Nh++;
-+    ctx->Nl = l;
-+    ctx->Nh += inputLen>>29;
-+    p = (unsigned char *)ctx->data;
-+    n = (unsigned int)ctx->num;
-+	rest = 64 - n;
 +
-+    if (n != 0) {
++    ctx->Nl = l;
++    ctx->Nh += (inputLen >> 29);
++    p = ctx->data;
++    n = ctx->num;
++
++    rest = 64 - n;
++    if (n) {
 +        if (inputLen >= rest) {
 +            memcpy(p + n, input, rest);
 +            input += rest;
@@ -190,7 +185,7 @@ index 0000000..7c1137f
 +            memset(p, 0, 64);
 +        } else {
 +            memcpy(p + n, input, inputLen);
-+            ctx->num += (unsigned int)inputLen;
++            ctx->num += inputLen;
 +            return;
 +        }
 +    }
@@ -201,8 +196,8 @@ index 0000000..7c1137f
 +        inputLen -= 64;
 +    }
 +
-+    if (inputLen > 0) {
-+        ctx->num = (unsigned int)inputLen;
++    if (inputLen) {
++        ctx->num = inputLen;
 +        memcpy(ctx->data, input, inputLen);
 +    }
 +}
@@ -211,39 +206,33 @@ index 0000000..7c1137f
 +SM3_End(SM3Context *ctx, unsigned char *digest,
 +        unsigned int *digestLen, unsigned int maxDigestLen)
 +{
-+    unsigned int n = ctx->num;
++    PRUint32 n = ctx->num;
 +
-+	if (maxDigestLen < SM3_LENGTH) {
++    if (maxDigestLen < SM3_LENGTH) {
 +        PORT_SetError(SEC_ERROR_INVALID_ARGS);
 +        return;
 +    }
 +
++    ctx->data[n] = 0x80;
++
 +    if (n >= 56) {
-+        ctx->data[n] = 0x80;
-+        n++;
-+        memset(ctx->data + n, 0, 64 - n);
-+        processOfSM3(ctx, ctx->data);
-+        memset(ctx->data, 0, 64);
-+		Put_32(ctx->data, ctx->Nh, 56);
-+		Put_32(ctx->data, ctx->Nl, 60);
-+        processOfSM3(ctx, ctx->data);
-+        memset(ctx->data, 0, 64);
-+    } else {
-+        ctx->data[n] = 0x80;
-+		Put_32(ctx->data, ctx->Nh, 56);
-+		Put_32(ctx->data, ctx->Nl, 60);
++        memset(ctx->data + n + 1, 0, 64 - n - 1);
 +        processOfSM3(ctx, ctx->data);
 +        memset(ctx->data, 0, 64);
 +    }
 +
-+    Put_32(digest, ctx->A, 0);
-+    Put_32(digest, ctx->B, 4);
-+    Put_32(digest, ctx->C, 8);
-+    Put_32(digest, ctx->D, 12);
-+    Put_32(digest, ctx->E, 16);
-+    Put_32(digest, ctx->F, 20);
-+    Put_32(digest, ctx->G, 24);
-+    Put_32(digest, ctx->H, 28);
++    Put_32(&ctx->data[56], ctx->Nh);
++    Put_32(&ctx->data[60], ctx->Nl);
++    processOfSM3(ctx, ctx->data);
++
++    Put_32(digest, ctx->A);
++    Put_32(digest + 4, ctx->B);
++    Put_32(digest + 8, ctx->C);
++    Put_32(digest + 12, ctx->D);
++    Put_32(digest + 16, ctx->E);
++    Put_32(digest + 20, ctx->F);
++    Put_32(digest + 24, ctx->G);
++    Put_32(digest + 28, ctx->H);
 +
 +    if (digestLen)
 +        *digestLen = SM3_LENGTH;
@@ -302,12 +291,12 @@ index 0000000..7c1137f
 +{
 +    memcpy(dest, src, sizeof *dest);
 +}
-diff --git a/nss/lib/freebl/sm3.h b/nss/lib/freebl/sm3.h
+diff --git a/lib/freebl/sm3.h b/lib/freebl/sm3.h
 new file mode 100644
-index 0000000..c08ae1e
+index 0000000..83d787f
 --- /dev/null
-+++ b/nss/lib/freebl/sm3.h
-@@ -0,0 +1,23 @@
++++ b/lib/freebl/sm3.h
+@@ -0,0 +1,19 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -317,18 +306,14 @@ index 0000000..c08ae1e
 +
 +#include "prtypes.h"
 +
-+SM3Context *SM3_NewContext(void);
-+void SM3_DestroyContext(SM3Context *ctx, PRBool freeit);
-+void SM3_Begin(SM3Context *ctx);
-+void SM3_Update(SM3Context *ctx, const unsigned char *input, unsigned int inputLen);
-+void SM3_End(SM3Context *ctx, unsigned char *digest, unsigned int *digestLen, unsigned int maxDigestLen);
-+SECStatus SM3_HashBuf(unsigned char *dest, const unsigned char *src, PRUint32 src_length);
-+SECStatus SM3_Hash(unsigned char *dest, const char *src);
-+void SM3_TraceState(SM3Context *ctx);
-+unsigned int SM3_FlattenSize(SM3Context *ctx);
-+SECStatus SM3_Flatten(SM3Context *ctx, unsigned char *space);
-+SM3Context *SM3_Resurrect(unsigned char *space, void *arg);
-+void SM3_Clone(SM3Context *dest, SM3Context *src);
++struct SM3ContextStr {
++    PRUint32 A, B, C, D, E, F, G, H;
++    PRUint32 Nl, Nh;
++    PRUint8 data[64];
++    PRUint32 num;
++};
++
++typedef struct SM3ContextStr SM3Context;
 +
 +#endif /* _SM3_H_ */
 -- 

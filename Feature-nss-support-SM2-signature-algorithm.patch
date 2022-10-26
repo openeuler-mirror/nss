@@ -1,30 +1,31 @@
-From 730ed23bef70e1726c7d2b5ea67e5cabf59aa448 Mon Sep 17 00:00:00 2001
+From 95151bc198fb304ebaea229be32ad6c207f41887 Mon Sep 17 00:00:00 2001
 From: Huaxin Lu <luhuaxin1@huawei.com>
-Date: Sun, 16 Oct 2022 05:02:53 +0800
+Date: Tue, 27 Sep 2022 20:14:27 +0800
 Subject: [PATCH 4/4] nss support SM2 signature algorithm
 
- Co-authored-by:godcansee <liu332084460@foxmail.com>
+Co-authored-by: godcansee <liu332084460@foxmail.com>
+Signed-off-by: Huaxin Lu <luhuaxin1@huawei.com>
 ---
- nss/lib/cryptohi/cryptohi.h     |  2 ++
- nss/lib/cryptohi/seckey.c       |  3 +++
- nss/lib/cryptohi/secsign.c      | 43 +++++++++++++++++++++++++++++++++
- nss/lib/cryptohi/secvfy.c       |  5 ++++
- nss/lib/freebl/ec.c             |  5 +++-
- nss/lib/freebl/ecdecode.c       |  5 +++-
- nss/lib/freebl/ecl/ecl-curve.h  | 33 +++++++++++++++++++++++++
- nss/lib/freebl/ecl/ecl-exp.h    |  1 +
- nss/lib/freebl/freebl_base.gypi |  1 +
- nss/lib/freebl/manifest.mn      |  2 ++
- nss/lib/nss/nss.def             |  6 +++++
- nss/lib/util/pkcs11t.h          |  2 ++
- nss/lib/util/secoid.c           |  4 +++
- nss/lib/util/secoidt.h          |  2 ++
+ lib/cryptohi/cryptohi.h     |  2 ++
+ lib/cryptohi/seckey.c       |  3 +++
+ lib/cryptohi/secsign.c      | 43 +++++++++++++++++++++++++++++++++++++
+ lib/cryptohi/secvfy.c       |  5 +++++
+ lib/freebl/ec.c             |  5 ++++-
+ lib/freebl/ecdecode.c       |  5 ++++-
+ lib/freebl/ecl/ecl-curve.h  | 33 ++++++++++++++++++++++++++++
+ lib/freebl/ecl/ecl-exp.h    |  1 +
+ lib/freebl/freebl_base.gypi |  1 +
+ lib/freebl/manifest.mn      |  2 ++
+ lib/nss/nss.def             |  6 ++++++
+ lib/util/pkcs11n.h          |  2 ++
+ lib/util/secoid.c           |  4 ++++
+ lib/util/secoidt.h          |  2 ++
  14 files changed, 112 insertions(+), 2 deletions(-)
 
-diff --git a/nss/lib/cryptohi/cryptohi.h b/nss/lib/cryptohi/cryptohi.h
+diff --git a/lib/cryptohi/cryptohi.h b/lib/cryptohi/cryptohi.h
 index 7b66f0b..4f99ef9 100644
---- a/nss/lib/cryptohi/cryptohi.h
-+++ b/nss/lib/cryptohi/cryptohi.h
+--- a/lib/cryptohi/cryptohi.h
++++ b/lib/cryptohi/cryptohi.h
 @@ -420,6 +420,8 @@ extern SECStatus VFY_VerifyDataWithAlgorithmID(const unsigned char *buf,
                                                 const SECAlgorithmID *algid, SECOidTag *hash,
                                                 void *wincx);
@@ -34,10 +35,10 @@ index 7b66f0b..4f99ef9 100644
  SEC_END_PROTOS
  
  #endif /* _CRYPTOHI_H_ */
-diff --git a/nss/lib/cryptohi/seckey.c b/nss/lib/cryptohi/seckey.c
+diff --git a/lib/cryptohi/seckey.c b/lib/cryptohi/seckey.c
 index fa13bc3..4bcd43e 100644
---- a/nss/lib/cryptohi/seckey.c
-+++ b/nss/lib/cryptohi/seckey.c
+--- a/lib/cryptohi/seckey.c
++++ b/lib/cryptohi/seckey.c
 @@ -520,6 +520,7 @@ seckey_GetKeyType(SECOidTag tag)
              keyType = dhKey;
              break;
@@ -62,10 +63,10 @@ index fa13bc3..4bcd43e 100644
              return 256;
  
          case SEC_OID_ANSIX962_EC_C2PNB272W1:
-diff --git a/nss/lib/cryptohi/secsign.c b/nss/lib/cryptohi/secsign.c
-index c46b2b1..65627ae 100644
---- a/nss/lib/cryptohi/secsign.c
-+++ b/nss/lib/cryptohi/secsign.c
+diff --git a/lib/cryptohi/secsign.c b/lib/cryptohi/secsign.c
+index c46b2b1..90be1d1 100644
+--- a/lib/cryptohi/secsign.c
++++ b/lib/cryptohi/secsign.c
 @@ -861,3 +861,46 @@ SEC_CreateSignatureAlgorithmParameters(PLArenaPool *arena,
              return result;
      }
@@ -113,12 +114,11 @@ index c46b2b1..65627ae 100644
 +    PK11_DestroyContext(ctx, PR_TRUE);
 +    return SECSuccess;
 +}
-\ No newline at end of file
-diff --git a/nss/lib/cryptohi/secvfy.c b/nss/lib/cryptohi/secvfy.c
-index 2540a54..01362df 100644
---- a/nss/lib/cryptohi/secvfy.c
-+++ b/nss/lib/cryptohi/secvfy.c
-@@ -257,6 +257,8 @@ sec_GetEncAlgFromSigAlg(SECOidTag sigAlg)
+diff --git a/lib/cryptohi/secvfy.c b/lib/cryptohi/secvfy.c
+index 1754584..1d75bdf 100644
+--- a/lib/cryptohi/secvfy.c
++++ b/lib/cryptohi/secvfy.c
+@@ -288,6 +288,8 @@ sec_GetEncAlgFromSigAlg(SECOidTag sigAlg)
          case SEC_OID_ANSIX962_ECDSA_SIGNATURE_RECOMMENDED_DIGEST:
          case SEC_OID_ANSIX962_ECDSA_SIGNATURE_SPECIFIED_DIGEST:
              return SEC_OID_ANSIX962_EC_PUBLIC_KEY;
@@ -127,7 +127,7 @@ index 2540a54..01362df 100644
          /* we don't implement MD4 hashes */
          case SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION:
          default:
-@@ -399,6 +401,9 @@ sec_DecodeSigAlg(const SECKEYPublicKey *key, SECOidTag sigAlg,
+@@ -430,6 +432,9 @@ sec_DecodeSigAlg(const SECKEYPublicKey *key, SECOidTag sigAlg,
                  return SECFailure;
              }
              break;
@@ -137,10 +137,10 @@ index 2540a54..01362df 100644
          /* we don't implement MD4 hashes */
          case SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION:
          default:
-diff --git a/nss/lib/freebl/ec.c b/nss/lib/freebl/ec.c
+diff --git a/lib/freebl/ec.c b/lib/freebl/ec.c
 index 73a625a..bf2aea7 100644
---- a/nss/lib/freebl/ec.c
-+++ b/nss/lib/freebl/ec.c
+--- a/lib/freebl/ec.c
++++ b/lib/freebl/ec.c
 @@ -15,6 +15,7 @@
  #include "mplogic.h"
  #include "ec.h"
@@ -160,10 +160,10 @@ index 73a625a..bf2aea7 100644
  
  cleanup:
      if (kBytes) {
-diff --git a/nss/lib/freebl/ecdecode.c b/nss/lib/freebl/ecdecode.c
+diff --git a/lib/freebl/ecdecode.c b/lib/freebl/ecdecode.c
 index 652ad42..4c090d2 100644
---- a/nss/lib/freebl/ecdecode.c
-+++ b/nss/lib/freebl/ecdecode.c
+--- a/lib/freebl/ecdecode.c
++++ b/lib/freebl/ecdecode.c
 @@ -179,7 +179,10 @@ EC_FillParams(PLArenaPool *arena, const SECItem *encodedParams,
              CHECK_SEC_OK(gf_populate_params_bytes(ECCurve25519, ec_field_plain,
                                                    params));
@@ -176,10 +176,10 @@ index 652ad42..4c090d2 100644
          default:
              break;
      };
-diff --git a/nss/lib/freebl/ecl/ecl-curve.h b/nss/lib/freebl/ecl/ecl-curve.h
+diff --git a/lib/freebl/ecl/ecl-curve.h b/lib/freebl/ecl/ecl-curve.h
 index fc8003f..e64fe4d 100644
---- a/nss/lib/freebl/ecl/ecl-curve.h
-+++ b/nss/lib/freebl/ecl/ecl-curve.h
+--- a/lib/freebl/ecl/ecl-curve.h
++++ b/lib/freebl/ecl/ecl-curve.h
 @@ -206,6 +206,38 @@ static const ECCurveBytes ecCurve_25519 = {
      KU_KEY_AGREEMENT
  };
@@ -227,10 +227,10 @@ index fc8003f..e64fe4d 100644
      NULL                /* ECCurve_pastLastCurve */
  };
  
-diff --git a/nss/lib/freebl/ecl/ecl-exp.h b/nss/lib/freebl/ecl/ecl-exp.h
+diff --git a/lib/freebl/ecl/ecl-exp.h b/lib/freebl/ecl/ecl-exp.h
 index 44adb8a..d071fc9 100644
---- a/nss/lib/freebl/ecl/ecl-exp.h
-+++ b/nss/lib/freebl/ecl/ecl-exp.h
+--- a/lib/freebl/ecl/ecl-exp.h
++++ b/lib/freebl/ecl/ecl-exp.h
 @@ -132,6 +132,7 @@ typedef enum {
      /* ECCurve_WTLS_12 == ECCurve_NIST_P224 */
  
@@ -239,10 +239,10 @@ index 44adb8a..d071fc9 100644
  
      ECCurve_pastLastCurve
  } ECCurveName;
-diff --git a/nss/lib/freebl/freebl_base.gypi b/nss/lib/freebl/freebl_base.gypi
+diff --git a/lib/freebl/freebl_base.gypi b/lib/freebl/freebl_base.gypi
 index 85a569f..253ce8d 100644
---- a/nss/lib/freebl/freebl_base.gypi
-+++ b/nss/lib/freebl/freebl_base.gypi
+--- a/lib/freebl/freebl_base.gypi
++++ b/lib/freebl/freebl_base.gypi
 @@ -59,6 +59,7 @@
      'sha_fast.c',
      'shvfy.c',
@@ -251,10 +251,10 @@ index 85a569f..253ce8d 100644
      'sysrand.c',
      'tlsprfalg.c',
    ],
-diff --git a/nss/lib/freebl/manifest.mn b/nss/lib/freebl/manifest.mn
+diff --git a/lib/freebl/manifest.mn b/lib/freebl/manifest.mn
 index fd3218d..2dbf7c9 100644
---- a/nss/lib/freebl/manifest.mn
-+++ b/nss/lib/freebl/manifest.mn
+--- a/lib/freebl/manifest.mn
++++ b/lib/freebl/manifest.mn
 @@ -158,6 +158,7 @@ CSRCS = \
  	$(LOWHASH_SRCS) \
  	$(EXTRA_SRCS) \
@@ -271,10 +271,10 @@ index fd3218d..2dbf7c9 100644
  	$(NULL)
  
  
-diff --git a/nss/lib/nss/nss.def b/nss/lib/nss/nss.def
+diff --git a/lib/nss/nss.def b/lib/nss/nss.def
 index e87395b..2bc4965 100644
---- a/nss/lib/nss/nss.def
-+++ b/nss/lib/nss/nss.def
+--- a/lib/nss/nss.def
++++ b/lib/nss/nss.def
 @@ -1238,3 +1238,9 @@ PK11_SlotGetLastFIPSStatus;
  ;+    local:
  ;+       *;
@@ -285,23 +285,23 @@ index e87395b..2bc4965 100644
 +;+    local:
 +;+       *;
 +;+};
-diff --git a/nss/lib/util/pkcs11t.h b/nss/lib/util/pkcs11t.h
-index 93cb8d1..a1e3323 100644
---- a/nss/lib/util/pkcs11t.h
-+++ b/nss/lib/util/pkcs11t.h
-@@ -1243,6 +1243,8 @@ typedef CK_ULONG CK_MECHANISM_TYPE;
+diff --git a/lib/util/pkcs11n.h b/lib/util/pkcs11n.h
+index 9bb704c..f195077 100644
+--- a/lib/util/pkcs11n.h
++++ b/lib/util/pkcs11n.h
+@@ -252,6 +252,8 @@
  
- /* new for TODO */
- #define CKM_SM3 0x0000402eUL
-+#define CKM_SM2 0x0000402fUL
-+#define CKM_SM2_WITH_SM3 0x00004030UL
+ /* SM algorithm (to be proposed to PKCS #11) */
+ #define CKM_NSS_SM3 (CKM_NSS + 45)
++#define CKM_NSS_SM2 (CKM_NSS + 46)
++#define CKM_NSS_SM2_WITH_SM3 (CKM_NSS + 47)
  
- #define CKM_VENDOR_DEFINED 0x80000000UL
  
-diff --git a/nss/lib/util/secoid.c b/nss/lib/util/secoid.c
-index fd620e9..d68f1b6 100644
---- a/nss/lib/util/secoid.c
-+++ b/nss/lib/util/secoid.c
+ /*
+diff --git a/lib/util/secoid.c b/lib/util/secoid.c
+index 3091d99..f5f2b12 100644
+--- a/lib/util/secoid.c
++++ b/lib/util/secoid.c
 @@ -606,6 +606,8 @@ CONST_OID curve25519[] = { 0x2B, 0x06, 0x01, 0x04, 0x01, 0xDA, 0x47, 0x0F, 0x01
   * 1.2.156.197.1.401
   */
@@ -314,16 +314,16 @@ index fd620e9..d68f1b6 100644
 @@ -1801,6 +1803,8 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
         "IPsec User",
         CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION),
-     OD(sm3, SEC_OID_SM3, "SM3", CKM_SM3, INVALID_CERT_EXTENSION),
-+    OD(sm2, SEC_OID_SM2, "SM2", CKM_SM2, INVALID_CERT_EXTENSION),
-+    OD(sm2_with_sm3, SEC_OID_SM2_WITH_SM3, "SM2_WITH_SM3", CKM_SM2_WITH_SM3, INVALID_CERT_EXTENSION),
+     OD(sm3, SEC_OID_SM3, "SM3", CKM_NSS_SM3, INVALID_CERT_EXTENSION),
++    OD(sm2, SEC_OID_SM2, "SM2", CKM_NSS_SM2, INVALID_CERT_EXTENSION),
++    OD(sm2_with_sm3, SEC_OID_SM2_WITH_SM3, "SM2_WITH_SM3", CKM_NSS_SM2_WITH_SM3, INVALID_CERT_EXTENSION),
  };
  
  /* PRIVATE EXTENDED SECOID Table
-diff --git a/nss/lib/util/secoidt.h b/nss/lib/util/secoidt.h
+diff --git a/lib/util/secoidt.h b/lib/util/secoidt.h
 index 984b7fb..fe49661 100644
---- a/nss/lib/util/secoidt.h
-+++ b/nss/lib/util/secoidt.h
+--- a/lib/util/secoidt.h
++++ b/lib/util/secoidt.h
 @@ -503,6 +503,8 @@ typedef enum {
      SEC_OID_EXT_KEY_USAGE_IPSEC_USER = 363,
  
