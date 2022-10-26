@@ -1,0 +1,564 @@
+From 5cf8e813cd5c765f09e368f0b5f2dbd4e4c430b1 Mon Sep 17 00:00:00 2001
+From: Huaxin Lu <luhuaxin1@huawei.com>
+Date: Sat, 20 Aug 2022 00:49:51 +0800
+Subject: [PATCH 2/4] nss support SM3 digest algorithm
+
+Co-authored-by: godcansee <liu332084460@foxmail.com>
+Signed-off-by: Huaxin Lu <luhuaxin1@huawei.com>
+---
+ lib/cryptohi/sechash.c      | 19 ++++++++
+ lib/freebl/blapi.h          | 18 ++++++++
+ lib/freebl/blapit.h         |  4 ++
+ lib/freebl/freebl_base.gypi |  1 +
+ lib/freebl/ldvector.c       | 13 +++++-
+ lib/freebl/loader.c         | 91 +++++++++++++++++++++++++++++++++++++
+ lib/freebl/loader.h         | 14 ++++++
+ lib/freebl/manifest.mn      |  2 +
+ lib/freebl/rawhash.c        | 12 +++++
+ lib/pk11wrap/pk11pars.c     |  2 +
+ lib/pk11wrap/pk11slot.c     | 11 ++++-
+ lib/pk11wrap/secmod.h       |  1 +
+ lib/softoken/pkcs11.c       |  1 +
+ lib/softoken/pkcs11c.c      |  2 +
+ lib/util/hasht.h            |  2 +
+ lib/util/pkcs11n.h          |  4 ++
+ lib/util/secoid.c           |  6 +++
+ lib/util/secoidt.h          |  2 +
+ lib/util/utilmodt.h         |  1 +
+ lib/util/utilpars.c         |  1 +
+ lib/util/utilparst.h        |  2 +-
+ 21 files changed, 205 insertions(+), 4 deletions(-)
+
+diff --git a/lib/cryptohi/sechash.c b/lib/cryptohi/sechash.c
+index 474fdff..7c4cdbf 100644
+--- a/lib/cryptohi/sechash.c
++++ b/lib/cryptohi/sechash.c
+@@ -85,6 +85,12 @@ sha512_NewContext(void)
+     return (void *)PK11_CreateDigestContext(SEC_OID_SHA512);
+ }
+ 
++static void *
++sm3_NewContext(void)
++{
++    return (void *)PK11_CreateDigestContext(SEC_OID_SM3);
++}
++
+ const SECHashObject SECHashObjects[] = {
+     { 0,
+       (void *(*)(void))null_hash_new_context,
+@@ -166,6 +172,16 @@ const SECHashObject SECHashObjects[] = {
+           PK11_DigestFinal,
+       SHA224_BLOCK_LENGTH,
+       HASH_AlgSHA224 },
++    { SM3_LENGTH,
++      (void *(*)(void))sm3_NewContext,
++      (void *(*)(void *))PK11_CloneContext,
++      (void (*)(void *, PRBool))PK11_DestroyContext,
++      (void (*)(void *))PK11_DigestBegin,
++      (void (*)(void *, const unsigned char *, unsigned int))PK11_DigestOp,
++      (void (*)(void *, unsigned char *, unsigned int *, unsigned int))
++          PK11_DigestFinal,
++      SM3_BLOCK_LENGTH,
++      HASH_AlgSM3 },
+ };
+ 
+ const SECHashObject *
+@@ -201,6 +217,9 @@ HASH_GetHashTypeByOidTag(SECOidTag hashOid)
+         case SEC_OID_SHA512:
+             ht = HASH_AlgSHA512;
+             break;
++        case SEC_OID_SM3:
++            ht = HASH_AlgSM3;
++            break;
+         default:
+             PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
+             break;
+diff --git a/lib/freebl/blapi.h b/lib/freebl/blapi.h
+index 94fd802..d53c196 100644
+--- a/lib/freebl/blapi.h
++++ b/lib/freebl/blapi.h
+@@ -1484,6 +1484,24 @@ extern SECStatus SHA384_Flatten(SHA384Context *cx, unsigned char *space);
+ extern SHA384Context *SHA384_Resurrect(unsigned char *space, void *arg);
+ extern void SHA384_Clone(SHA384Context *dest, SHA384Context *src);
+ 
++/******************************************/
++
++extern SM3Context *SM3_NewContext(void);
++extern void SM3_DestroyContext(SM3Context *cx, PRBool freeit);
++extern void SM3_Begin(SM3Context *cx);
++extern void SM3_Update(SM3Context *cx, const unsigned char *input,
++                          unsigned int inputLen);
++extern void SM3_End(SM3Context *cx, unsigned char *digest,
++                       unsigned int *digestLen, unsigned int maxDigestLen);
++extern SECStatus SM3_HashBuf(unsigned char *dest, const unsigned char *src,
++                                PRUint32 src_length);
++extern SECStatus SM3_Hash(unsigned char *dest, const char *src);
++extern void SM3_TraceState(SM3Context *cx);
++extern unsigned int SM3_FlattenSize(SM3Context *cx);
++extern SECStatus SM3_Flatten(SM3Context *cx, unsigned char *space);
++extern SM3Context *SM3_Resurrect(unsigned char *space, void *arg);
++extern void SM3_Clone(SM3Context *dest, SM3Context *src);
++
+ /****************************************
+  * implement TLS 1.0 Pseudo Random Function (PRF) and TLS P_hash function
+  */
+diff --git a/lib/freebl/blapit.h b/lib/freebl/blapit.h
+index 0054e17..2d400ec 100644
+--- a/lib/freebl/blapit.h
++++ b/lib/freebl/blapit.h
+@@ -98,6 +98,7 @@ typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
+ #define SHA384_LENGTH 48     /* bytes */
+ #define SHA512_LENGTH 64     /* bytes */
+ #define BLAKE2B512_LENGTH 64 /* Bytes */
++#define SM3_LENGTH 32        /* bytes */
+ #define HASH_LENGTH_MAX SHA512_LENGTH
+ 
+ /*
+@@ -112,6 +113,7 @@ typedef int __BLAPI_DEPRECATED __attribute__((deprecated));
+ #define SHA384_BLOCK_LENGTH 128  /* bytes */
+ #define SHA512_BLOCK_LENGTH 128  /* bytes */
+ #define BLAKE2B_BLOCK_LENGTH 128 /* Bytes */
++#define SM3_BLOCK_LENGTH 64      /* bytes */
+ #define HASH_BLOCK_LENGTH_MAX SHA512_BLOCK_LENGTH
+ 
+ #define AES_BLOCK_SIZE 16 /* bytes */
+@@ -243,6 +245,7 @@ struct MD5ContextStr;
+ struct SHA1ContextStr;
+ struct SHA256ContextStr;
+ struct SHA512ContextStr;
++struct SM3ContextStr;
+ struct AESKeyWrapContextStr;
+ struct SEEDContextStr;
+ struct ChaCha20ContextStr;
+@@ -264,6 +267,7 @@ typedef struct SHA256ContextStr SHA224Context;
+ typedef struct SHA512ContextStr SHA512Context;
+ /* SHA384Context is really a SHA512ContextStr.  This is not a mistake. */
+ typedef struct SHA512ContextStr SHA384Context;
++typedef struct SM3ContextStr SM3Context;
+ typedef struct AESKeyWrapContextStr AESKeyWrapContext;
+ typedef struct SEEDContextStr SEEDContext;
+ typedef struct ChaCha20ContextStr ChaCha20Context;
+diff --git a/lib/freebl/freebl_base.gypi b/lib/freebl/freebl_base.gypi
+index afbffac..85a569f 100644
+--- a/lib/freebl/freebl_base.gypi
++++ b/lib/freebl/freebl_base.gypi
+@@ -58,6 +58,7 @@
+     'rsapkcs.c',
+     'sha_fast.c',
+     'shvfy.c',
++    'sm3.c',
+     'sysrand.c',
+     'tlsprfalg.c',
+   ],
+diff --git a/lib/freebl/ldvector.c b/lib/freebl/ldvector.c
+index ac3b862..67bb001 100644
+--- a/lib/freebl/ldvector.c
++++ b/lib/freebl/ldvector.c
+@@ -376,9 +376,20 @@ static const struct FREEBLVectorStr vector =
+       /* End of version 3.024 */
+       ChaCha20_InitContext,
+       ChaCha20_CreateContext,
+-      ChaCha20_DestroyContext
++      ChaCha20_DestroyContext,
+ 
+       /* End of version 3.025 */
++      SM3_NewContext,
++      SM3_DestroyContext,
++      SM3_Begin,
++      SM3_Update,
++      SM3_End,
++      SM3_HashBuf,
++      SM3_Hash,
++      SM3_TraceState,
++      SM3_FlattenSize,
++      SM3_Flatten,
++      SM3_Resurrect
+     };
+ 
+ const FREEBLVector*
+diff --git a/lib/freebl/loader.c b/lib/freebl/loader.c
+index 692a883..dc3a37e 100644
+--- a/lib/freebl/loader.c
++++ b/lib/freebl/loader.c
+@@ -2446,3 +2446,94 @@ CMAC_Destroy(CMACContext *ctx, PRBool free_it)
+         return;
+     (vector->p_CMAC_Destroy)(ctx, free_it);
+ }
++
++SECStatus
++SM3_Hash(unsigned char *dest, const char *src)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return SECFailure;
++    return (vector->p_SM3_Hash)(dest, src);
++}
++
++SECStatus
++SM3_HashBuf(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return SECFailure;
++    return (vector->p_SM3_HashBuf)(dest, src, src_length);
++}
++
++SM3Context *
++SM3_NewContext(void)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return NULL;
++    return (vector->p_SM3_NewContext)();
++}
++
++void
++SM3_DestroyContext(SM3Context *cx, PRBool freeit)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return;
++    (vector->p_SM3_DestroyContext)(cx, freeit);
++}
++
++void
++SM3_Begin(SM3Context *cx)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return;
++    (vector->p_SM3_Begin)(cx);
++}
++
++void
++SM3_Update(SM3Context *cx, const unsigned char *input,
++              unsigned int inputLen)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return;
++    (vector->p_SM3_Update)(cx, input, inputLen);
++}
++
++void
++SM3_End(SM3Context *cx, unsigned char *digest,
++           unsigned int *digestLen, unsigned int maxDigestLen)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return;
++    (vector->p_SM3_End)(cx, digest, digestLen, maxDigestLen);
++}
++
++void
++SM3_TraceState(SM3Context *cx)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return;
++    (vector->p_SM3_TraceState)(cx);
++}
++
++unsigned int
++SM3_FlattenSize(SM3Context *cx)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return 0;
++    return (vector->p_SM3_FlattenSize)(cx);
++}
++
++SECStatus
++SM3_Flatten(SM3Context *cx, unsigned char *space)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return SECFailure;
++    return (vector->p_SM3_Flatten)(cx, space);
++}
++
++SM3Context *
++SM3_Resurrect(unsigned char *space, void *arg)
++{
++    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
++        return NULL;
++    return (vector->p_SM3_Resurrect)(space, arg);
++}
++
+diff --git a/lib/freebl/loader.h b/lib/freebl/loader.h
+index eb3046d..f67595e 100644
+--- a/lib/freebl/loader.h
++++ b/lib/freebl/loader.h
+@@ -831,6 +831,20 @@ struct FREEBLVectorStr {
+     void (*p_ChaCha20_DestroyContext)(ChaCha20Context *ctx, PRBool freeit);
+ 
+     /* Version 3.025 came to here */
++    SM3Context *(*p_SM3_NewContext)(void);
++    void (*p_SM3_DestroyContext)(SM3Context *cx, PRBool freeit);
++    void (*p_SM3_Begin)(SM3Context *cx);
++    void (*p_SM3_Update)(SM3Context *cx, const unsigned char *input,
++                            unsigned int inputLen);
++    void (*p_SM3_End)(SM3Context *cx, unsigned char *digest,
++                         unsigned int *digestLen, unsigned int maxDigestLen);
++    SECStatus (*p_SM3_HashBuf)(unsigned char *dest, const unsigned char *src,
++                                  PRUint32 src_length);
++    SECStatus (*p_SM3_Hash)(unsigned char *dest, const char *src);
++    void (*p_SM3_TraceState)(SM3Context *cx);
++    unsigned int (*p_SM3_FlattenSize)(SM3Context *cx);
++    SECStatus (*p_SM3_Flatten)(SM3Context *cx, unsigned char *space);
++    SM3Context *(*p_SM3_Resurrect)(unsigned char *space, void *arg);
+ 
+     /* Add new function pointers at the end of this struct and bump
+      * FREEBL_VERSION at the beginning of this file. */
+diff --git a/lib/freebl/manifest.mn b/lib/freebl/manifest.mn
+index 9dac210..fd3218d 100644
+--- a/lib/freebl/manifest.mn
++++ b/lib/freebl/manifest.mn
+@@ -157,6 +157,7 @@ CSRCS = \
+ 	$(STUBS_SRCS) \
+ 	$(LOWHASH_SRCS) \
+ 	$(EXTRA_SRCS) \
++	sm3.c \
+ 	$(NULL)
+ 
+ ifndef NSS_DISABLE_DEPRECATED_SEED
+@@ -186,6 +187,7 @@ ALL_HDRS =  \
+ 	shsign.h \
+ 	vis_proto.h \
+ 	seed.h \
++	sm3.h \
+ 	$(NULL)
+ 
+ 
+diff --git a/lib/freebl/rawhash.c b/lib/freebl/rawhash.c
+index 551727b..c74cbbc 100644
+--- a/lib/freebl/rawhash.c
++++ b/lib/freebl/rawhash.c
+@@ -141,6 +141,18 @@ const SECHashObject SECRawHashObjects[] = {
+       HASH_AlgSHA224,
+       (void (*)(void *, unsigned char *, unsigned int *,
+                 unsigned int))SHA224_EndRaw },
++      { SM3_LENGTH,
++      (void *(*)(void))SM3_NewContext,
++      (void *(*)(void *))null_hash_clone_context,
++      (void (*)(void *, PRBool))SM3_DestroyContext,
++      (void (*)(void *))SM3_Begin,
++      (void (*)(void *, const unsigned char *, unsigned int))SM3_Update,
++      (void (*)(void *, unsigned char *, unsigned int *,
++                unsigned int))SM3_End,
++      SM3_BLOCK_LENGTH,
++      HASH_AlgSM3,
++      NULL /* end_raw */
++    },
+ };
+ 
+ const SECHashObject *
+diff --git a/lib/pk11wrap/pk11pars.c b/lib/pk11wrap/pk11pars.c
+index 23e5af3..c127309 100644
+--- a/lib/pk11wrap/pk11pars.c
++++ b/lib/pk11wrap/pk11pars.c
+@@ -338,6 +338,8 @@ static const oidValDef hashOptList[] = {
+     { CIPHER_NAME("SHA384"), SEC_OID_SHA384,
+       NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_SIGNATURE },
+     { CIPHER_NAME("SHA512"), SEC_OID_SHA512,
++      NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_SIGNATURE },
++    { CIPHER_NAME("SM3"), SEC_OID_SM3,
+       NSS_USE_ALG_IN_SSL_KX | NSS_USE_ALG_IN_SIGNATURE }
+ };
+ 
+diff --git a/lib/pk11wrap/pk11slot.c b/lib/pk11wrap/pk11slot.c
+index c320019..41a326b 100644
+--- a/lib/pk11wrap/pk11slot.c
++++ b/lib/pk11wrap/pk11slot.c
+@@ -51,6 +51,7 @@ const PK11DefaultArrayEntry PK11_DefaultArray[] = {
+     { "SHA512", SECMOD_SHA512_FLAG, CKM_SHA512 },
+     { "MD5", SECMOD_MD5_FLAG, CKM_MD5 },
+     { "MD2", SECMOD_MD2_FLAG, CKM_MD2 },
++    { "SM3", SECMOD_SM3_FLAG, CKM_NSS_SM3 },
+     { "SSL", SECMOD_SSL_FLAG, CKM_SSL3_PRE_MASTER_KEY_GEN },
+     { "TLS", SECMOD_TLS_FLAG, CKM_TLS_MASTER_KEY_DERIVE },
+     { "SKIPJACK", SECMOD_FORTEZZA_FLAG, CKM_SKIPJACK_CBC64 },
+@@ -93,7 +94,8 @@ static PK11SlotList
+     pk11_tlsSlotList,
+     pk11_randomSlotList,
+     pk11_sha256SlotList,
+-    pk11_sha512SlotList; /* slots do SHA512 and SHA384 */
++    pk11_sha512SlotList, /* slots do SHA512 and SHA384 */
++    pk11_sm3SlotList;
+ 
+ /************************************************************
+  * Generic Slot List and Slot List element manipulations
+@@ -838,6 +840,7 @@ PK11_InitSlotLists(void)
+     pk11_InitSlotListStatic(&pk11_randomSlotList);
+     pk11_InitSlotListStatic(&pk11_sha256SlotList);
+     pk11_InitSlotListStatic(&pk11_sha512SlotList);
++    pk11_InitSlotListStatic(&pk11_sm3SlotList);
+     return SECSuccess;
+ }
+ 
+@@ -864,6 +867,7 @@ PK11_DestroySlotLists(void)
+     pk11_FreeSlotListStatic(&pk11_randomSlotList);
+     pk11_FreeSlotListStatic(&pk11_sha256SlotList);
+     pk11_FreeSlotListStatic(&pk11_sha512SlotList);
++    pk11_FreeSlotListStatic(&pk11_sm3SlotList);
+     return;
+ }
+ 
+@@ -911,6 +915,8 @@ PK11_GetSlotList(CK_MECHANISM_TYPE type)
+             return &pk11_md5SlotList;
+         case CKM_MD2:
+             return &pk11_md2SlotList;
++        case CKM_NSS_SM3:
++            return &pk11_sm3SlotList;
+         case CKM_RC2_ECB:
+         case CKM_RC2_CBC:
+             return &pk11_rc2SlotList;
+@@ -2362,7 +2368,8 @@ PK11_GetBestSlotMultipleWithAttributes(CK_MECHANISM_TYPE *type,
+             (type[i] != CKM_SHA384) &&
+             (type[i] != CKM_SHA512) &&
+             (type[i] != CKM_MD5) &&
+-            (type[i] != CKM_MD2)) {
++            (type[i] != CKM_MD2) &&
++	    (type[i] != CKM_NSS_SM3)) {
+             listNeedLogin = PR_TRUE;
+             break;
+         }
+diff --git a/lib/pk11wrap/secmod.h b/lib/pk11wrap/secmod.h
+index fcc7707..dbc58e8 100644
+--- a/lib/pk11wrap/secmod.h
++++ b/lib/pk11wrap/secmod.h
+@@ -29,6 +29,7 @@
+ #define PUBLIC_MECH_CAMELLIA_FLAG 0x00010000ul
+ #define PUBLIC_MECH_SEED_FLAG 0x00020000ul
+ #define PUBLIC_MECH_ECC_FLAG 0x00040000ul
++#define PUBLIC_MECH_SM3_FLAG 0x00080000ul
+ 
+ #define PUBLIC_MECH_RANDOM_FLAG 0x08000000ul
+ #define PUBLIC_MECH_FRIENDLY_FLAG 0x10000000ul
+diff --git a/lib/softoken/pkcs11.c b/lib/softoken/pkcs11.c
+index 3f49333..323b2e2 100644
+--- a/lib/softoken/pkcs11.c
++++ b/lib/softoken/pkcs11.c
+@@ -452,6 +452,7 @@ static const struct mechanismList mechanisms[] = {
+     { CKM_NSS_TLS_PRF_GENERAL_SHA256,
+       { 0, 512, CKF_SN_VR },
+       PR_FALSE },
++    { CKM_NSS_SM3, { 0, 0, CKF_DIGEST }, PR_FALSE },
+     /* ------------------------- HKDF Operations -------------------------- */
+     { CKM_HKDF_DERIVE, { 1, 255 * 64, CKF_DERIVE }, PR_TRUE },
+     { CKM_HKDF_DATA, { 1, 255 * 64, CKF_DERIVE }, PR_TRUE },
+diff --git a/lib/softoken/pkcs11c.c b/lib/softoken/pkcs11c.c
+index 201a0c7..813f4d7 100644
+--- a/lib/softoken/pkcs11c.c
++++ b/lib/softoken/pkcs11c.c
+@@ -1939,6 +1939,8 @@ NSC_DigestInit(CK_SESSION_HANDLE hSession,
+         INIT_MECH(SHA256)
+         INIT_MECH(SHA384)
+         INIT_MECH(SHA512)
++#define CKM_SM3 CKM_NSS_SM3
++        INIT_MECH(SM3)
+ 
+         default:
+             crv = CKR_MECHANISM_INVALID;
+diff --git a/lib/util/hasht.h b/lib/util/hasht.h
+index 536d34c..556c6ba 100644
+--- a/lib/util/hasht.h
++++ b/lib/util/hasht.h
+@@ -24,6 +24,7 @@ typedef enum {
+     HASH_AlgSHA384 = 5,
+     HASH_AlgSHA512 = 6,
+     HASH_AlgSHA224 = 7,
++    HASH_AlgSM3 = 8,
+     HASH_AlgTOTAL
+ } HASH_HashType;
+ 
+@@ -37,6 +38,7 @@ typedef enum {
+ #define SHA256_LENGTH 32
+ #define SHA384_LENGTH 48
+ #define SHA512_LENGTH 64
++#define SM3_LENGTH 32
+ #define HASH_LENGTH_MAX SHA512_LENGTH
+ 
+ /*
+diff --git a/lib/util/pkcs11n.h b/lib/util/pkcs11n.h
+index 9a8126a..9bb704c 100644
+--- a/lib/util/pkcs11n.h
++++ b/lib/util/pkcs11n.h
+@@ -250,6 +250,10 @@
+ #define CKM_NSS_SP800_108_FEEDBACK_KDF_DERIVE_DATA (CKM_NSS + 43)
+ #define CKM_NSS_SP800_108_DOUBLE_PIPELINE_KDF_DERIVE_DATA (CKM_NSS + 44)
+ 
++/* SM algorithm (to be proposed to PKCS #11) */
++#define CKM_NSS_SM3 (CKM_NSS + 45)
++
++
+ /*
+  * HISTORICAL:
+  * Do not attempt to use these. They are only used by NSS's internal
+diff --git a/lib/util/secoid.c b/lib/util/secoid.c
+index b10f859..3091d99 100644
+--- a/lib/util/secoid.c
++++ b/lib/util/secoid.c
+@@ -602,6 +602,11 @@ CONST_OID evIncorporationCountry[] = { EV_NAME_ATTRIBUTE, 3 };
+  */
+ CONST_OID curve25519[] = { 0x2B, 0x06, 0x01, 0x04, 0x01, 0xDA, 0x47, 0x0F, 0x01 };
+ 
++/* https://datatracker.ietf.org/doc/html/draft-oscca-cfrg-sm3-02
++ * 1.2.156.197.1.401
++ */
++CONST_OID sm3[] = { 0x2A, 0x81, 0x1C, 0xCF, 0x55, 0x01, 0x83, 0x11 };
++
+ #define OI(x)                                  \
+     {                                          \
+         siDEROID, (unsigned char *)x, sizeof x \
+@@ -1795,6 +1800,7 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
+        SEC_OID_EXT_KEY_USAGE_IPSEC_USER,
+        "IPsec User",
+        CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION),
++    OD(sm3, SEC_OID_SM3, "SM3", CKM_NSS_SM3, INVALID_CERT_EXTENSION),
+ };
+ 
+ /* PRIVATE EXTENDED SECOID Table
+diff --git a/lib/util/secoidt.h b/lib/util/secoidt.h
+index 2b7eb21..984b7fb 100644
+--- a/lib/util/secoidt.h
++++ b/lib/util/secoidt.h
+@@ -502,6 +502,8 @@ typedef enum {
+     SEC_OID_EXT_KEY_USAGE_IPSEC_TUNNEL = 362,
+     SEC_OID_EXT_KEY_USAGE_IPSEC_USER = 363,
+ 
++    SEC_OID_SM3 = 364,
++
+     SEC_OID_TOTAL
+ } SECOidTag;
+ 
+diff --git a/lib/util/utilmodt.h b/lib/util/utilmodt.h
+index e1555f3..cc927dd 100644
+--- a/lib/util/utilmodt.h
++++ b/lib/util/utilmodt.h
+@@ -28,6 +28,7 @@
+ #define SECMOD_CAMELLIA_FLAG 0x00010000L /* = PUBLIC_MECH_CAMELLIA_FLAG */
+ #define SECMOD_SEED_FLAG 0x00020000L
+ #define SECMOD_ECC_FLAG 0x00040000L
++#define SECMOD_SM3_FLAG 0x00080000L
+ /* reserved bit for future, do not use */
+ #define SECMOD_RESERVED_FLAG 0X08000000L
+ #define SECMOD_FRIENDLY_FLAG 0x10000000L
+diff --git a/lib/util/utilpars.c b/lib/util/utilpars.c
+index c248aa6..56ede24 100644
+--- a/lib/util/utilpars.c
++++ b/lib/util/utilpars.c
+@@ -607,6 +607,7 @@ static struct nssutilArgSlotFlagTable nssutil_argSlotFlagTable[] = {
+     NSSUTIL_ARG_ENTRY(AES, SECMOD_AES_FLAG),
+     NSSUTIL_ARG_ENTRY(Camellia, SECMOD_CAMELLIA_FLAG),
+     NSSUTIL_ARG_ENTRY(SEED, SECMOD_SEED_FLAG),
++    NSSUTIL_ARG_ENTRY(SM3, SECMOD_SM3_FLAG),
+     NSSUTIL_ARG_ENTRY(PublicCerts, SECMOD_FRIENDLY_FLAG),
+     NSSUTIL_ARG_ENTRY(RANDOM, SECMOD_RANDOM_FLAG),
+     NSSUTIL_ARG_ENTRY(Disable, SECMOD_DISABLE_FLAG),
+diff --git a/lib/util/utilparst.h b/lib/util/utilparst.h
+index 5dda090..7a4c9f7 100644
+--- a/lib/util/utilparst.h
++++ b/lib/util/utilparst.h
+@@ -43,7 +43,7 @@
+ #define NSSUTIL_DEFAULT_INTERNAL_INIT3 \
+     " askpw=any timeout=30})\""
+ #define NSSUTIL_DEFAULT_SFTKN_FLAGS \
+-    "slotFlags=[ECC,RSA,DSA,DH,RC2,RC4,DES,RANDOM,SHA1,MD5,MD2,SSL,TLS,AES,Camellia,SEED,SHA256,SHA512]"
++    "slotFlags=[ECC,RSA,DSA,DH,RC2,RC4,DES,RANDOM,SHA1,MD5,MD2,SSL,TLS,AES,Camellia,SEED,SHA256,SHA512,SM3]"
+ 
+ #define NSSUTIL_DEFAULT_CIPHER_ORDER 0
+ #define NSSUTIL_DEFAULT_TRUST_ORDER 50
+-- 
+2.33.0
+
