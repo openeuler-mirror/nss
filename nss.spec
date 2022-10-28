@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          3
+Release:          4
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -42,6 +42,12 @@ Source16:         setup-nsssysinit.sh
 Patch0:           nss-539183.patch
 
 Patch6000:        backport-CVE-2021-43527.patch
+
+# Feature: support sm2 and sm3
+Patch9000:        Feature-nss-add-implement-of-SM3-digest-algorithm.patch
+Patch9001:        Feature-nss-add-implement-of-SM2-signature-algorithm.patch  
+Patch9002:        Feature-nss-support-SM3-digest-algorithm.patch
+Patch9003:        Feature-nss-support-SM2-signature-algorithm.patch
 
 %description
 Network Security Services (NSS) is a set of libraries designed to
@@ -127,6 +133,10 @@ Help document for NSS
 %patch0 -p0 -b .539183
 pushd nss
 %patch6000 -p1
+%patch9000 -p1
+%patch9001 -p1
+%patch9002 -p1
+%patch9003 -p1
 popd
 
 %build
@@ -549,6 +559,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Thu Oct 27 2022 luhuaxin <luhuaxin1@huawei.com> - 3.72.0-4
+- optimize support for sm2,sm3
+
 * Thu Aug 04 2022 renhongxun <renhongxun@h-partners.com> - 3.72.0-3
 - remove nss-help from Requires of nss and nss-util
 
