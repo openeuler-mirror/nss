@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          4
+Release:          5
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -44,10 +44,10 @@ Patch0:           nss-539183.patch
 Patch6000:        backport-CVE-2021-43527.patch
 
 # Feature: support sm2 and sm3
-Patch9000:        nss-add-implement-of-SM3-digest-algorithm.patch
-Patch9001:        nss-add-implement-of-SM2-signature-algorithm.patch  
-Patch9002:        nss-support-SM3-digest-algorithm.patch
-Patch9003:        nss-support-SM2-signature-algorithm.patch
+Patch9000:        Feature-nss-add-implement-of-SM3-digest-algorithm.patch
+Patch9001:        Feature-nss-add-implement-of-SM2-signature-algorithm.patch  
+Patch9002:        Feature-nss-support-SM3-digest-algorithm.patch
+Patch9003:        Feature-nss-support-SM2-signature-algorithm.patch
 
 %description
 Network Security Services (NSS) is a set of libraries designed to
@@ -133,12 +133,11 @@ Help document for NSS
 %patch0 -p0 -b .539183
 pushd nss
 %patch6000 -p1
-popd
-
 %patch9000 -p1
 %patch9001 -p1
 %patch9002 -p1
 %patch9003 -p1
+popd
 
 %build
 
@@ -560,16 +559,19 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
-* Mon Oct 10 2022 godcansee <liu332084460@foxmail.com> - 3.72-4
+* Thu Oct 27 2022 luhuaxin <luhuaxin1@huawei.com> - 3.72.0-5
+- optimize support for sm2,sm3 
+
+* Mon Oct 10 2022 godcansee <liu332084460@foxmail.com> - 3.72.0-4
 - add feature to support for sm2,sm3 
 
-* Sat Jul 30 2022 zhangjun <zhangjun@kylinos.cn> - 3.72-3
+* Sat Jul 30 2022 zhangjun <zhangjun@kylinos.cn> - 3.72.0-3
 - remove Requires nss-help 
 
-* Tue Dec 28 2021 shangyibin <shangyibin1@huawei.com> - 3.72-2
+* Tue Dec 28 2021 shangyibin <shangyibin1@huawei.com> - 3.72.0-2
 - fix CVE-2021-43527
 
-* Mon Nov 29 2021 liudabo <liudabo1@huawei.com> - 3.72-1
+* Mon Nov 29 2021 liudabo <liudabo1@huawei.com> - 3.72.0-1
 - upgrade version to 3.72
 
 * Fri Jul 23 2021 yuanxin <yuanxin24@huawei.com> - 3.54-10
