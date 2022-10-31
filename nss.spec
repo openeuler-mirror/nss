@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          3
+Release:          4
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -42,6 +42,7 @@ Source16:         setup-nsssysinit.sh
 Patch0:           nss-539183.patch
 
 Patch6000:        backport-CVE-2021-43527.patch
+Patch6001:        nss-3.72-sw.patch
 
 %description
 Network Security Services (NSS) is a set of libraries designed to
@@ -128,8 +129,12 @@ Help document for NSS
 pushd nss
 %patch6000 -p1
 popd
+%patch6001 -p1
 
 %build
+%ifarch sw_64
+export NSS_DISABLE_GTESTS=1
+%endif
 
 export NSS_FORCE_FIPS=1
 # Enable compiler optimizations and disable debugging code
@@ -194,6 +199,9 @@ mkdir -p ./dist/docs/nroff
 cp ./nss/doc/nroff/* ./dist/docs/nroff
 
 # Set up our package files
+%ifarch sw_64
+sed -i 's/lib64/lib/g' %{SOURCE1} %{SOURCE3} %{SOURCE8}
+%endif
 mkdir -p ./dist/pkgconfig
 for m in %{SOURCE1} %{SOURCE2} %{SOURCE3} %{SOURCE4} %{SOURCE8} %{SOURCE9} %{SOURCE16}; do
   cp ${m} ./dist/pkgconfig
@@ -549,6 +557,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Wed Oct 26 2022 wuzx<wuzx1226@qq.com> - 3.72.0-4
+- Add sw64 architecture
+
 * Thu Aug 04 2022 renhongxun <renhongxun@h-partners.com> - 3.72.0-3
 - remove nss-help from Requires of nss and nss-util
 

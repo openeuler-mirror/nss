@@ -1,0 +1,34 @@
+diff -Nuar nss-3.72.org/nss/coreconf/Linux.mk nss-3.72.sw/nss/coreconf/Linux.mk
+--- nss-3.72.org/nss/coreconf/Linux.mk	2022-07-20 07:53:12.030000000 +0000
++++ nss-3.72.sw/nss/coreconf/Linux.mk	2022-07-20 07:57:27.470000000 +0000
+@@ -64,6 +64,10 @@
+         OS_REL_CFLAGS   = -D_ALPHA_
+ 	CPU_ARCH	= alpha
+ else
++ifeq ($(OS_TEST),sw_64)
++        OS_REL_CFLAGS   = -D_SW_64_
++	CPU_ARCH	= sw_64
++else
+ ifeq ($(OS_TEST),x86_64)
+ ifeq ($(USE_64),1)
+ 	CPU_ARCH	= x86_64
+@@ -101,6 +105,7 @@
+ endif
+ endif
+ endif
++endif
+ endif
+ endif
+ endif
+diff -Nuar nss-3.72.org/nss/lib/dbm/include/mcom_db.h nss-3.72.sw/nss/lib/dbm/include/mcom_db.h
+--- nss-3.72.org/nss/lib/dbm/include/mcom_db.h	2022-07-20 07:53:12.350000000 +0000
++++ nss-3.72.sw/nss/lib/dbm/include/mcom_db.h	2022-07-20 07:54:41.020000000 +0000
+@@ -126,7 +126,7 @@
+ #include <machine/endian.h>
+ #endif
+ 
+-#ifdef __alpha
++#if defined __alpha || defined __sw_64
+ #ifndef WIN32
+ #else
+ /* Alpha NT */
