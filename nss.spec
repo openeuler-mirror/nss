@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          4
+Release:          5
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -25,7 +25,7 @@ BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-de
 BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ 
 obsoletes:	  nss-sysinit < %{version}-%{release}
 
-Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_54_RTM/src/%{name}-%{nss_archive_version}.tar.gz
+Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_72_RTM/src/%{name}-%{nss_archive_version}.tar.gz
 Source1:          nss-util.pc
 Source2:          nss-util-config
 Source3:          nss-softokn.pc
@@ -559,6 +559,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Wed Nov 23 2022 zhouchenchen <zhouchenchen@huawei.com> - 3.72.0-5
+- uppdate source0 url
+
 * Thu Oct 27 2022 luhuaxin <luhuaxin1@huawei.com> - 3.72.0-4
 - optimize support for sm2,sm3
 
