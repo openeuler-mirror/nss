@@ -250,7 +250,7 @@ index 85a569f..253ce8d 100644
 +    'sm2.c',
      'sysrand.c',
      'tlsprfalg.c',
-   ],
+     'secmpi.c',
 diff --git a/lib/freebl/manifest.mn b/lib/freebl/manifest.mn
 index fd3218d..2dbf7c9 100644
 --- a/lib/freebl/manifest.mn
