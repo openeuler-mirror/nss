@@ -1,6 +1,6 @@
-%global nspr_version 4.26.0
-%global nss_version 3.72.0
-%global nss_archive_version 3.72
+%global nspr_version 4.35.0
+%global nss_version 3.85.0
+%global nss_archive_version 3.85
 %global unsupported_tools_directory %{_libdir}/nss/unsupported-tools
 %global allTools "certutil cmsutil crlutil derdump modutil pk12util signtool signver ssltap vfychain vfyserv"
 
@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          6
+Release:          1
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -25,7 +25,7 @@ BuildRequires:    nspr-devel >= %{nspr_version} nss-softokn sqlite-devel zlib-de
 BuildRequires:    pkgconf gawk psmisc perl-interpreter gcc-c++ 
 obsoletes:	  nss-sysinit < %{version}-%{release}
 
-Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_72_RTM/src/%{name}-%{nss_archive_version}.tar.gz
+Source0:          https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_85_RTM/src/%{name}-%{nss_archive_version}.tar.gz
 Source1:          nss-util.pc
 Source2:          nss-util-config
 Source3:          nss-softokn.pc
@@ -39,9 +39,6 @@ Source13:         blank-cert9.db
 Source14:         blank-key4.db
 Source15:         system-pkcs11.txt
 Source16:         setup-nsssysinit.sh
-Patch0:           nss-539183.patch
-
-Patch6000:        backport-CVE-2021-43527.patch
 
 # Feature: support sm2 and sm3
 Patch9000:        Feature-nss-add-implement-of-SM3-digest-algorithm.patch
@@ -130,9 +127,7 @@ Help document for NSS
 %prep
 %setup -q -n %{name}-%{nss_archive_version}
 
-%patch0 -p0 -b .539183
 pushd nss
-%patch6000 -p1
 %patch9000 -p1
 %patch9001 -p1
 %patch9002 -p1
@@ -559,6 +554,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Tue Dec 27 2022 zhouchenchen <zhouchenchen@huawei.com> - 3.85.0-1
+- update source0 url
+
 * Wed Nov 23 2022 zhouchenchen <zhouchenchen@huawei.com> - 3.72.0-6
 - update source0 url
 

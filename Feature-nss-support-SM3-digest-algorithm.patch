@@ -139,7 +139,7 @@ index 0054e17..2d400ec 100644
  typedef struct SEEDContextStr SEEDContext;
  typedef struct ChaCha20ContextStr ChaCha20Context;
 diff --git a/lib/freebl/freebl_base.gypi b/lib/freebl/freebl_base.gypi
-index afbffac..85a569f 100644
+index 34b6b3c..8f64046 100644
 --- a/lib/freebl/freebl_base.gypi
 +++ b/lib/freebl/freebl_base.gypi
 @@ -58,6 +58,7 @@
@@ -149,31 +149,31 @@ index afbffac..85a569f 100644
 +    'sm3.c',
      'sysrand.c',
      'tlsprfalg.c',
-   ],
+     'secmpi.c',
 diff --git a/lib/freebl/ldvector.c b/lib/freebl/ldvector.c
-index ac3b862..67bb001 100644
+index 6f4bd6a..143584b 100644
 --- a/lib/freebl/ldvector.c
 +++ b/lib/freebl/ldvector.c
-@@ -376,9 +376,20 @@ static const struct FREEBLVectorStr vector =
-       /* End of version 3.024 */
-       ChaCha20_InitContext,
-       ChaCha20_CreateContext,
--      ChaCha20_DestroyContext
-+      ChaCha20_DestroyContext,
+@@ -375,9 +375,20 @@ static const struct FREEBLVectorStr vector = {
+     /* End of version 3.024 */
+     ChaCha20_InitContext,
+     ChaCha20_CreateContext,
+-    ChaCha20_DestroyContext
++    ChaCha20_DestroyContext,
  
-       /* End of version 3.025 */
-+      SM3_NewContext,
-+      SM3_DestroyContext,
-+      SM3_Begin,
-+      SM3_Update,
-+      SM3_End,
-+      SM3_HashBuf,
-+      SM3_Hash,
-+      SM3_TraceState,
-+      SM3_FlattenSize,
-+      SM3_Flatten,
-+      SM3_Resurrect
-     };
+     /* End of version 3.025 */
++    SM3_NewContext,
++    SM3_DestroyContext,
++    SM3_Begin,
++    SM3_Update,
++    SM3_End,
++    SM3_HashBuf,
++    SM3_Hash,
++    SM3_TraceState,
++    SM3_FlattenSize,
++    SM3_Flatten,
++    SM3_Resurrect
+ };
  
  const FREEBLVector*
 diff --git a/lib/freebl/loader.c b/lib/freebl/loader.c
