@@ -560,7 +560,7 @@ update-crypto-policies &>/dev/null||:
 
 %changelog
 * Wed Nov 23 2022 zhouchenchen <zhouchenchen@huawei.com> - 3.72.0-5
-- uppdate source0 url
+- update source0 url
 
 * Thu Oct 27 2022 luhuaxin <luhuaxin1@huawei.com> - 3.72.0-4
 - optimize support for sm2,sm3
