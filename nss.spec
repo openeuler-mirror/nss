@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          5
+Release:          6
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -559,8 +559,11 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Wed Feb 15 2023 zhouchenchen <zhouchenchen@huawei.com> - 3.72.0-6
+- fix spelling mistake
+
 * Wed Nov 23 2022 zhouchenchen <zhouchenchen@huawei.com> - 3.72.0-5
-- uppdate source0 url
+- update source0 url
 
 * Thu Oct 27 2022 luhuaxin <luhuaxin1@huawei.com> - 3.72.0-4
 - optimize support for sm2,sm3
