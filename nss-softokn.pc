@@ -5,7 +5,7 @@ includedir=/usr/include/nss3
 
 Name: NSS-SOFTOKN
 Description: Network Security Services Softoken PKCS #11 Module
-Version: 3.54
-Requires: nspr >= 4.20.0, nss-util >= 3.54
+Version: 3.85
+Requires: nspr >= 4.35.0, nss-util >= 3.85
 Libs: -L${libdir} -lfreebl3 -lnssdbm3 -lsoftokn3
 Cflags: -I${includedir}
