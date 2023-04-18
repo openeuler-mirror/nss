@@ -1,0 +1,185 @@
+From f371f1384fa063007513bfb8e0a3966736968c84 Mon Sep 17 00:00:00 2001
+From: "John M. Schanck" <jschanck@mozilla.com>
+Date: Mon, 16 May 2022 18:27:29 +0000
+Subject: [PATCH] Bug 1753315 - Add SECMOD_LockedModuleHasRemovableSlots.
+ r=rrelyea
+
+Differential Revision: https://phabricator.services.mozilla.com/D137702
+
+--HG--
+extra : moz-landing-system : lando
+---
+ .../abi-check/expected-report-libnss3.so.txt  |  5 ++++
+ lib/nss/nss.def                               |  6 +++++
+ lib/pk11wrap/pk11list.c                       |  4 +--
+ lib/pk11wrap/pk11util.c                       | 23 +++++++++++-----
+ lib/pk11wrap/secmod.h                         | 27 +++++++++++++++++++
+ lib/util/nssrwlk.h                            |  5 ++--
+ 6 files changed, 60 insertions(+), 10 deletions(-)
+
+diff --git a/automation/abi-check/expected-report-libnss3.so.txt b/automation/abi-check/expected-report-libnss3.so.txt
+index e69de29bb2..57aeb8c7b5 100644
+--- a/automation/abi-check/expected-report-libnss3.so.txt
++++ b/automation/abi-check/expected-report-libnss3.so.txt
+@@ -0,0 +1,5 @@
++
++1 Added function:
++
++  'function PRBool SECMOD_LockedModuleHasRemovableSlots(SECMODModule*)'    {SECMOD_LockedModuleHasRemovableSlots@@NSS_3.79}
++
+diff --git a/lib/nss/nss.def b/lib/nss/nss.def
+index dd352d81a0..35850caeea 100644
+--- a/lib/nss/nss.def
++++ b/lib/nss/nss.def
+@@ -1247,3 +1247,9 @@ PK11_FindObjectForCert;
+ ;+    local:
+ ;+       *;
+ ;+};
++;+NSS_3.79 { 	# NSS 3.79 release
++;+    global:
++SECMOD_LockedModuleHasRemovableSlots;
++;+    local:
++;+       *;
++;+};
+diff --git a/lib/pk11wrap/pk11list.c b/lib/pk11wrap/pk11list.c
+index aaf29f69dd..beca1a71c1 100644
+--- a/lib/pk11wrap/pk11list.c
++++ b/lib/pk11wrap/pk11list.c
+@@ -32,8 +32,8 @@ SECMOD_DestroyListLock(SECMODListLock *lock)
+ }
+ 
+ /*
+- * Lock the List for Read: NOTE: this assumes the reading isn't so common
+- * the writing will be starved.
++ * Lock the list for reading.
++ * Note: this uses a non-reentrant lock. Writers are given preference.
+  */
+ void
+ SECMOD_GetReadLock(SECMODListLock *modLock)
+diff --git a/lib/pk11wrap/pk11util.c b/lib/pk11wrap/pk11util.c
+index 0862ee2891..f6b66c3e33 100644
+--- a/lib/pk11wrap/pk11util.c
++++ b/lib/pk11wrap/pk11util.c
+@@ -1002,6 +1002,8 @@ SECMOD_CanDeleteInternalModule(void)
+  * C_GetSlotList(flag, &data, &count) so that the array doesn't accidently
+  * grow on the caller. It is permissible for the slots to increase between
+  * successive calls with NULL to get the size.
++ *
++ * Caller must not hold a module list read lock.
+  */
+ SECStatus
+ SECMOD_UpdateSlotList(SECMODModule *mod)
+@@ -1344,14 +1346,27 @@ SECMOD_CancelWait(SECMODModule *mod)
+ PRBool
+ SECMOD_HasRemovableSlots(SECMODModule *mod)
+ {
+-    int i;
+     PRBool ret = PR_FALSE;
+-
+     if (!moduleLock) {
+         PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+         return ret;
+     }
+     SECMOD_GetReadLock(moduleLock);
++    ret = SECMOD_LockedModuleHasRemovableSlots(mod);
++    SECMOD_ReleaseReadLock(moduleLock);
++    return ret;
++}
++
++PRBool
++SECMOD_LockedModuleHasRemovableSlots(SECMODModule *mod)
++{
++    int i;
++    PRBool ret;
++    if (mod->slotCount == 0) {
++        return PR_TRUE;
++    }
++
++    ret = PR_FALSE;
+     for (i = 0; i < mod->slotCount; i++) {
+         PK11SlotInfo *slot = mod->slots[i];
+         /* perm modules are not inserted or removed */
+@@ -1361,10 +1376,6 @@ SECMOD_HasRemovableSlots(SECMODModule *mod)
+         ret = PR_TRUE;
+         break;
+     }
+-    if (mod->slotCount == 0) {
+-        ret = PR_TRUE;
+-    }
+-    SECMOD_ReleaseReadLock(moduleLock);
+     return ret;
+ }
+ 
+diff --git a/lib/pk11wrap/secmod.h b/lib/pk11wrap/secmod.h
+index fcc770780c..53181f0118 100644
+--- a/lib/pk11wrap/secmod.h
++++ b/lib/pk11wrap/secmod.h
+@@ -143,7 +143,31 @@ extern unsigned long SECMOD_PubMechFlagstoInternal(unsigned long publicFlags);
+ extern unsigned long SECMOD_InternaltoPubMechFlags(unsigned long internalFlags);
+ extern unsigned long SECMOD_PubCipherFlagstoInternal(unsigned long publicFlags);
+ 
++/*
++ * Check to see if the module has removable slots that we may need to
++ * watch for.
++ *
++ * NB: This function acquires the module list lock in order to access
++ * mod->slotCount and mod->slots. Deadlock can occur if the caller holds the
++ * module list lock. Callers that already hold the module list lock must use
++ * SECMOD_LockedModuleHasRemovableSlots instead.
++ */
+ PRBool SECMOD_HasRemovableSlots(SECMODModule *mod);
++
++/*
++ * Like SECMOD_HasRemovableSlots but this function does not acquire the module
++ * list lock.
++ */
++PRBool SECMOD_LockedModuleHasRemovableSlots(SECMODModule *mod);
++
++/*
++ * this function waits for a token event on any slot of a given module
++ * This function should not be called from more than one thread of the
++ * same process (though other threads can make other library calls
++ * on this module while this call is blocked).
++ *
++ * Caller must not hold a module list read lock.
++ */
+ PK11SlotInfo *SECMOD_WaitForAnyTokenEvent(SECMODModule *mod,
+                                           unsigned long flags, PRIntervalTime latency);
+ /*
+@@ -153,6 +177,7 @@ PK11SlotInfo *SECMOD_WaitForAnyTokenEvent(SECMODModule *mod,
+  * shutting down  the module.
+  */
+ SECStatus SECMOD_CancelWait(SECMODModule *mod);
++
+ /*
+  * check to see if the module has added new slots. PKCS 11 v2.20 allows for
+  * modules to add new slots, but never remove them. Slots not be added between
+@@ -160,6 +185,8 @@ SECStatus SECMOD_CancelWait(SECMODModule *mod);
+  * C_GetSlotList(flag, &data, &count) so that the array doesn't accidently
+  * grow on the caller. It is permissible for the slots to increase between
+  * corresponding calls with NULL to get the size.
++ *
++ * Caller must not hold a module list read lock.
+  */
+ SECStatus SECMOD_UpdateSlotList(SECMODModule *mod);
+ SEC_END_PROTOS
+diff --git a/lib/util/nssrwlk.h b/lib/util/nssrwlk.h
+index 2ae6931225..8e1fa6fbe1 100644
+--- a/lib/util/nssrwlk.h
++++ b/lib/util/nssrwlk.h
+@@ -5,12 +5,13 @@
+ /*
+ ** File:        nsrwlock.h
+ ** Description: API to basic reader-writer lock functions of NSS.
+-**  These are re-entrant reader writer locks; that is,
++**  These locks allow re-entry from writers but not readers. That is,
+ **  If I hold the write lock, I can ask for it and get it again.
+ **  If I hold the write lock, I can also ask for and get a read lock.
+ **      I can then release the locks in any order (read or write).
++**  If I hold a read lock, I must not ask for another read lock or
++**      the write lock.
+ **  I must release each lock type as many times as I acquired it.
+-**  Otherwise, these are normal reader/writer locks.
+ **
+ ** For deadlock detection, locks should be ranked, and no lock may be aquired
+ ** while I hold a lock of higher rank number.
