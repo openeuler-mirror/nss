@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          6
+Release:          7
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -40,6 +40,7 @@ Source14:         blank-key4.db
 Source15:         system-pkcs11.txt
 Source16:         setup-nsssysinit.sh
 Patch0:           nss-539183.patch
+Patch1:           backport-Bug-1753315-Add-SECMOD_LockedModuleHasRemovableSlots.patch
 
 Patch6000:        backport-CVE-2021-43527.patch
 
@@ -132,6 +133,7 @@ Help document for NSS
 
 %patch0 -p0 -b .539183
 pushd nss
+%patch1 -p1
 %patch6000 -p1
 %patch9000 -p1
 %patch9001 -p1
@@ -559,6 +561,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Tue Apr 18 2023 jinlun <jinlun@huawei.com> - 3.72.0-7
+- Add SECMOD_LockedModuleHasRemovableSlots and update version.
+
 * Wed Feb 15 2023 zhouchenchen <zhouchenchen@huawei.com> - 3.72.0-6
 - fix spelling mistake
 
