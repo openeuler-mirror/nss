@@ -1,0 +1,32 @@
+From f371f1384fa063007513bfb8e0a3966736968c84 Mon Sep 17 00:00:00 2001
+From: "John M. Schanck" <jschanck@mozilla.com>
+Date: Wed, 19 Jan 2022 14:13:38 +0000
+Subject: [PATCH] Bug 1749475 - Avoid undefined shift in SSL_CERT_IS while fuzzing.
+ r=nss-reviewers,mt
+
+Differential Revision: https://phabricator.services.mozilla.com/D135731
+
+---
+ lib/ssl/sslcert.c                         | 5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
+
+diff --git a/lib/ssl/sslcert.c b/lib/ssl/sslcert.c
+--- a/lib/ssl/sslcert.c
++++ b/lib/ssl/sslcert.c
+@@ -203,10 +203,15 @@
+ ssl_FindServerCert(const sslSocket *ss, SSLAuthType authType,
+                    const sslNamedGroupDef *namedCurve)
+ {
+     PRCList *cursor;
+ 
++    /* Bug 1749475: avoid UB while fuzzing session tickets */
++    if ((unsigned)authType >= ssl_auth_size) {
++        return NULL;
++    }
++
+     for (cursor = PR_NEXT_LINK(&ss->serverCerts);
+          cursor != &ss->serverCerts;
+          cursor = PR_NEXT_LINK(cursor)) {
+         sslServerCert *cert = (sslServerCert *)cursor;
+         if (!SSL_CERT_IS(cert, authType)) {
+
