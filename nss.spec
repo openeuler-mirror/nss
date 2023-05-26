@@ -14,7 +14,7 @@
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          5
+Release:          6
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -41,8 +41,9 @@ Source15:         system-pkcs11.txt
 Source16:         setup-nsssysinit.sh
 Patch0:           nss-539183.patch
 Patch1:           backport-Bug-1753315-Add-SECMOD_LockedModuleHasRemovableSlots.patch
+Patch2:           backport-CVE-2021-43527.patch
+Patch3:           backport-Bug-1749475-Avoid-undefined-shift-in-SSL_CERT_IS-while-fuzzing.patch
 
-Patch6000:        backport-CVE-2021-43527.patch
 Patch6001:        nss-3.72-sw.patch
 
 %description
@@ -129,7 +130,8 @@ Help document for NSS
 %patch0 -p0 -b .539183
 pushd nss
 %patch1 -p1
-%patch6000 -p1
+%patch2 -p1
+%patch3 -p1
 popd
 %patch6001 -p1
 
@@ -559,6 +561,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Thu May 25 2023 zhengxiaoxiao<zhengxiaoxiao2@huawei.com> - 3.72.0-6
+- fix Bug 1749475 - Avoid undefined shift in SSL_CERT_IS while fuzzing. r=nss-reviewers,mt
+
 * Tue Apr 18 2023 jinlun<jinlun@huawei.com> - 3.72.0-5
 - Add SECMOD_LockedModuleHasRemovableSlots to fix firefox and update version.
 
