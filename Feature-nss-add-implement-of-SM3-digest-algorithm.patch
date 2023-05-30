@@ -296,7 +296,7 @@ new file mode 100644
 index 0000000..83d787f
 --- /dev/null
 +++ b/lib/freebl/sm3.h
-@@ -0,0 +1,19 @@
+@@ -0,0 +1,17 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -312,8 +312,6 @@ index 0000000..83d787f
 +    PRUint8 data[64];
 +    PRUint32 num;
 +};
-+
-+typedef struct SM3ContextStr SM3Context;
 +
 +#endif /* _SM3_H_ */
 -- 
