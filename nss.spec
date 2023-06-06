@@ -11,10 +11,20 @@
 %bcond_with test
 %bcond_without dbm
 
+%define __spec_install_post \
+    %{?__debug_package:%{__debug_install_post}} \
+    %{__arch_install_post} \
+    %{__os_install_post} \
+    $RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libsoftokn3.so \
+    $RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreeblpriv3.so \
+    $RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libfreebl3.so \
+    %{?with_dbm:$RPM_BUILD_ROOT/%{unsupported_tools_directory}/shlibsign -i $RPM_BUILD_ROOT/%{_libdir}/libnssdbm3.so} \
+%{nil}
+
 Summary:          Network Security Services
 Name:             nss
 Version:          %{nss_version}
-Release:          8
+Release:          9
 License:          MPLv2.0
 URL:              http://www.mozilla.org/projects/security/pki/nss/
 Provides:         nss-system-init
@@ -523,15 +533,15 @@ update-crypto-policies &>/dev/null||:
 %{!?_licensedir:%global license %%doc}
 %license nss/COPYING
 %{_libdir}/libfreebl3.so
-#%{_libdir}/libfreebl3.chk
+%{_libdir}/libfreebl3.chk
 %{_libdir}/libfreeblpriv3.so
-#%{_libdir}/libfreeblpriv3.chk
+%{_libdir}/libfreeblpriv3.chk
 %if %{with dbm}
 %{_libdir}/libnssdbm3.so
-#%{_libdir}/libnssdbm3.chk
+%{_libdir}/libnssdbm3.chk
 %endif
 %{_libdir}/libsoftokn3.so
-#%{_libdir}/libsoftokn3.chk
+%{_libdir}/libsoftokn3.chk
 %dir %{_libdir}/nss
 %dir %{_libdir}/nss/saved
 %dir %{unsupported_tools_directory}
@@ -561,6 +571,9 @@ update-crypto-policies &>/dev/null||:
 %doc %{_mandir}/man*
 
 %changelog
+* Mon Jun 5 2023 jinlun <jinlun@huawei.com> - 3.72.0-9
+- Add Integrity Verification File in nss-softokn.
+
 * Mon May 29 2023 jinlun <jinlun@huawei.com> - 3.72.0-8
 - Fix build failed.
 
