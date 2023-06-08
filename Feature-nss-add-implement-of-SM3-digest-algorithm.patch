@@ -313,7 +313,7 @@ index 0000000..83d787f
 +    PRUint32 num;
 +};
 +
-+typedef struct SM3ContextStr SM3Context;
++
 +
 +#endif /* _SM3_H_ */
 -- 
